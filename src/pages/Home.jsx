@@ -1,7 +1,8 @@
 function Home() {
   return (
-    <div>
-    </div>
+    <section>
+      <p> Hello, There</p>
+    </section>
   );
 };
 
