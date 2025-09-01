@@ -1,5 +1,5 @@
 import Navbar from "./Navbar";
-import screenshot from "../assets/2_screenshot.png" // INFO: Choose photo accordingly
+import screenshot from "../assets/screenshot.png" // INFO: Choose photo accordingly
 
 function Hero() {
   return (
