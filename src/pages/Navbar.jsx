@@ -1,4 +1,5 @@
 import NavButton from "../components/Nav_button";
+import { Link } from "react-router-dom";
 
 function Navbar() {
 
@@ -8,17 +9,17 @@ function Navbar() {
         <nav className="w-[95%] flex items-center justify-between">
           {/* INFO: Left side of navbar */}
           <div id="left-nav flex items-center justify-between">
-            <NavButton href="#">Home</NavButton>
+            <Link to="/"><NavButton>Home</NavButton> </Link>
           </div>
 
           {/* INFO: Right side of navbar */}
           <div id="right-nav">
             <ul className="flex gap-4">
               <li className="text-[#ffffff]">
-                <NavButton href="#">Login</NavButton>
+                <Link to="/login"> <NavButton>Login</NavButton> </ Link>
               </li>
               <li>
-                <NavButton href="#">Signup</NavButton>
+                <Link to="/signup"> <NavButton>Signup</NavButton> </ Link>
               </li>
             </ul>
           </div>
