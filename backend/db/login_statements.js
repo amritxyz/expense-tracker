@@ -1,12 +1,17 @@
-// backend/db/login_statements.js (CommonJS version)
+// backend/db/login_statements.js
+
 const Database = require('better-sqlite3');
 const path = require('path');
 
-// Define the database path
+/*
+ * INFO: Define the database path
+ */
 const dbPath = path.join(__dirname, 'database.db');
 const db = new Database(dbPath, { verbose: console.log });
 
-// Define table attributes and create table if not exists
+/*
+ * INFO: Define table attributes and create table if not exists
+ */
 const table_name = 'login_users';
 const first_attr = 'id';
 const second_attr = 'user_name';
@@ -22,7 +27,9 @@ const attributes = `
   ${extra_attr}   DATETIME DEFAULT CURRENT_TIMESTAMP
 `;
 
-// Function to create table if it doesn't exist
+/*
+ * INFO: Function to create table if it doesn't exist
+ */
 function create_table() {
   const sql = `
     CREATE TABLE IF NOT EXISTS ${table_name} (
@@ -37,7 +44,9 @@ function create_table() {
   }
 }
 
-// Function to insert a new user into the table
+/*
+ * INFO: Function to insert a new user into the table
+ */
 function insert_user(user_name, email, password) {
   const sql = `
     INSERT INTO ${table_name} (${second_attr}, ${third_attr}, ${last_attr})
@@ -51,7 +60,9 @@ function insert_user(user_name, email, password) {
   }
 }
 
-// Function to get all users from the table
+/*
+ * INFO: Function to get all users from the table
+ */
 function get_users() {
   const sql = `SELECT * FROM ${table_name}`;
   try {
@@ -67,5 +78,5 @@ function get_user_by_email(email) {
   return db.prepare(`SELECT * FROM ${table_name} WHERE email = ?`).get(email);
 }
 
-// Exporting functions using CommonJS
+// Exporting functions
 module.exports = { create_table, insert_user, get_users, get_user_by_email };
