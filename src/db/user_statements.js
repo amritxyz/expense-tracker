@@ -1,9 +1,23 @@
-import sqlite3 from "better-sqlite3";
+import Database from "better-sqlite3";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
-const db = sqlite3('database.db', { verbose: console.log });
+// INFO: Setting up directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
+/*
+ * INFO: Setup for SQLite database using better-sqlite3
+ *   We are using `path.join(__dirname, "database.db")` to ensure the database path is
+ *   resolved relative to current file's location. NOT from where the script is executed.
+ *   (ie., `node db/database_name.db`).
+ */
+const db_path = path.join(__dirname, "database.db");
+const db = new Database(db_path, { verbose: console.log });
+
+// INFO: Database attributes.
 const table_name = "users";
-
 const first_attr = "id";
 const second_attr = "name";
 const last_attr = "age";
@@ -168,7 +182,7 @@ function reset_whole_table_primary_keys() {
 
 // create_table();
 // insert_table("susma", 20);
-// get_users();
+get_users();
 // get_user(1);
 // delete_user(1);
 // reset_autoincrement();
