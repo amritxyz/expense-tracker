@@ -5,17 +5,17 @@ function Hero() {
   return (
     <>
       <Navbar />
-      <section className="h-screen bg-[#000000] text-[#ffffff] flex items-center justify-center">
-        <div id="home_main" className="w-[95%] flex items-center justify-between">
-          <div id="left">
+      <section className="h-screen flex items-center justify-center">
+        <div id="home_main" className="px-1 py-2 w-[75%] flex items-center justify-between">
+          <div id="left" className="h-screen w-[50%] bg-black text-white flex items-center justify-between">
             {/* <img src={screenshot} className="w-[45%]" /> */}
-            <p>
+            <p className="w-[100%] flex text-center items-center justify-center">
               This is left
             </p>
           </div>
-          <div id="right" className="w-[45%]">
-            <p>
-              Hello, There
+          <div id="right" className="h-screen w-[50%] bg-red-500 flex justify-between">
+            <p className="w-[100%] flex text-center items-center justify-center">
+              This is right
             </p>
           </div>
         </div>

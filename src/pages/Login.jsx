@@ -1,107 +1,118 @@
+/* src/components/Login.jsx (Updated) */
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
-  // Define initial values
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const initialValues = {
     email: "",
     password: "",
   };
 
-  // Validation schema using Yup
   const validationSchema = Yup.object({
     email: Yup.string()
       .email("Invalid email format")
       .required("Email is required"),
-
     password: Yup.string()
       .required("Password is required")
       .min(6, "Password must be at least 6 characters"),
   });
 
-  // Handle submit with onSubmit
-  const onSubmit = async (values) => {
+  const onSubmit = async (values, { setSubmitting }) => {
     try {
-      // POST request to login the user
-      const response = await axios.post("http://localhost:5000/login", {
-        email: values.email,
-        password: values.password,
-      });
+      const result = await login(values.email, values.password);
 
-      // If successful, show success message and maybe redirect
-      toast.success("Login successful!");
+      if (result.success) {
+        toast.success("Login successful!");
+        setTimeout(() => navigate('/dashboard'), 1500); // Redirect after success
+      } else {
+        toast.error(result.message);
+      }
     } catch (error) {
-      // Show error message
       toast.error("Error logging in: " + error.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-lg mx-auto m-10 p-6 bg-white shadow-md rounded">
-      <h2 className="text-2xl font-semibold mb-6 text-center">Login Form</h2>
+    <section className="from-black to-gray-800 bg-gradient-to-t h-screen max-w-lvw mx-auto flex justify-center items-center">
+      <div className="w-[25%] h-[43%] m-10 p-6 bg-gray-100 shadow-md rounded-2xl">
+        <p className="px-1 my-4"> LOGO </p>
+        <h2 className="text-[#303030] text-2xl font-semibold mb-6 ">
+          Log in<br />
+          <span className="font-[500] text-[15px] text-gray-500">
+            Continue to Expense Tracker
+          </span>
+        </h2>
 
-      <Formik
-        initialValues={initialValues}
-        validationSchema={validationSchema}
-        onSubmit={onSubmit}
-      >
-        <Form>
-          {/* Define Fields */}
-          {[
-            {
-              name: 'email',
-              label: 'Email',
-              type: 'email',
-              placeholder: 'Enter your email',
-            },
-            {
-              name: 'password',
-              label: 'Password',
-              type: 'password',
-              placeholder: 'Enter your password',
-            },
-          ].map((field) => (
-            <div key={field.name} className="mb-4">
-              <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
-                {field.label}
-              </label>
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          onSubmit={onSubmit}
+        >
+          {({ isSubmitting }) => (
+            <Form>
+              {[
+                {
+                  name: 'email',
+                  label: 'Email',
+                  type: 'email',
+                  placeholder: 'Enter your email',
+                },
+                {
+                  name: 'password',
+                  label: 'Password',
+                  type: 'password',
+                  placeholder: 'Enter your password',
+                },
+              ].map((field) => (
+                <div key={field.name} className="mb-4">
+                  <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
+                    {field.label}
+                  </label>
 
-              <Field
-                type={field.type}
-                id={field.name}
-                name={field.name}
-                placeholder={field.placeholder}
-                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
+                  <Field
+                    type={field.type}
+                    id={field.name}
+                    name={field.name}
+                    placeholder={field.placeholder}
+                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
+                  />
 
-              <ErrorMessage
-                name={field.name}
-                component="div"
-                className="text-red-500 text-sm mt-1"
-              />
-            </div>
-          ))}
+                  <ErrorMessage
+                    name={field.name}
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
+              ))}
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200"
-          >
-            Login
-          </button>
-        </Form>
-      </Formik>
-      <p className="flex items-center justify-center my-3">
-        Don't have an account?
-        <Link to="/signup" className="mx-1 text-blue-500 hover:underline duration-300">
-          Sign up
-        </Link>
-      </p>
-      <ToastContainer />
-    </div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition duration-200 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Logging in...' : 'Login'}
+              </button>
+            </Form>
+          )}
+        </Formik>
+
+        <p className="flex items-center justify-center my-3">
+          Don't have an account?
+          <Link to="/signup" className="mx-1 text-blue-500 hover:underline hover:text-blue-800">
+            Sign up
+          </Link>
+        </p>
+        <ToastContainer />
+      </div>
+    </section>
   );
 };
 
