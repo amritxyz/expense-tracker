@@ -1,0 +1,2 @@
+# To run both frontend and backend together
+npm install concurrently --save-dev
