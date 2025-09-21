@@ -4,6 +4,7 @@ import * as Yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
+import "./index.css";
 
 const Signup = () => {
   const { register } = useAuth();
@@ -45,90 +46,95 @@ const Signup = () => {
     }
   };
 
+  {/* <section className="from-black to-gray-800 bg-gradient-to-t h-screen max-w-lvw mx-auto flex justify-center items-center"> */ }
   return (
-    <section className="from-black to-gray-800 bg-gradient-to-t h-screen max-w-lvw mx-auto flex justify-center items-center">
-      <div className="w-[25%] h-[43%] m-10 p-6 bg-gray-100 shadow-md rounded-2xl">
-        <h2 className="text-2xl text-[#303030] font-semibold mb-6 text-center">SignUp</h2>
+    <>
+      <div className="from-black to-gray-800 bg-gradient-to-t h-screen">
+        <div id="centering_this_div">
+          <div className="w-[100%] h-[100%] m-10 p-6 bg-gray-100 shadow-md rounded-2xl">
+            <h2 className="text-2xl text-[#303030] font-semibold mb-6 text-center">SignUp</h2>
 
-        <Formik
-          initialValues={initialValues}
-          validationSchema={validationSchema}
-          onSubmit={onSubmit}
-        >
-          {({ isSubmitting }) => (
-            <Form>
-              {[
-                {
-                  name: 'user',
-                  label: 'Full Name',
-                  type: 'text',
-                  placeholder: 'Enter your full name',
-                },
-                {
-                  name: 'email',
-                  label: 'Email',
-                  type: 'email',
-                  placeholder: 'Enter your email',
-                },
-                {
-                  name: 'password',
-                  label: 'Password',
-                  type: 'password',
-                  placeholder: 'Enter your password',
-                },
-              ].map((field) => (
-                <div key={field.name} className="mb-4">
-                  <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
-                    {field.label}
-                  </label>
+            <Formik
+              initialValues={initialValues}
+              validationSchema={validationSchema}
+              onSubmit={onSubmit}
+            >
+              {({ isSubmitting }) => (
+                <Form>
+                  {[
+                    {
+                      name: 'user',
+                      label: 'Full Name',
+                      type: 'text',
+                      placeholder: 'Enter your full name',
+                    },
+                    {
+                      name: 'email',
+                      label: 'Email',
+                      type: 'email',
+                      placeholder: 'Enter your email',
+                    },
+                    {
+                      name: 'password',
+                      label: 'Password',
+                      type: 'password',
+                      placeholder: 'Enter your password',
+                    },
+                  ].map((field) => (
+                    <div key={field.name} className="mb-4">
+                      <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
+                        {field.label}
+                      </label>
 
-                  {field.type === 'textarea' ? (
-                    <Field
-                      as="textarea"
-                      id={field.name}
-                      name={field.name}
-                      rows="3"
-                      placeholder={field.placeholder}
-                      className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
-                    />
-                  ) : (
-                    <Field
-                      type={field.type}
-                      id={field.name}
-                      name={field.name}
-                      placeholder={field.placeholder}
-                      className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
-                    />
-                  )}
+                      {field.type === 'textarea' ? (
+                        <Field
+                          as="textarea"
+                          id={field.name}
+                          name={field.name}
+                          rows="3"
+                          placeholder={field.placeholder}
+                          className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
+                        />
+                      ) : (
+                        <Field
+                          type={field.type}
+                          id={field.name}
+                          name={field.name}
+                          placeholder={field.placeholder}
+                          className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
+                        />
+                      )}
 
-                  <ErrorMessage
-                    name={field.name}
-                    component="div"
-                    className="text-red-500 text-sm mt-1"
-                  />
-                </div>
-              ))}
+                      <ErrorMessage
+                        name={field.name}
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+                  ))}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition duration-200 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Registering...' : 'Register'}
-              </button>
-            </Form>
-          )}
-        </Formik>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition duration-200 disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Registering...' : 'Register'}
+                  </button>
+                </Form>
+              )}
+            </Formik>
 
-        <p className="flex items-center justify-center my-3">
-          already have one?
-          <Link to="/login" className="mx-1 text-blue-500 hover:underline hover:text-blue-800">
-            Login
-          </Link>
-        </p>
-        <ToastContainer />
+            <p className="flex items-center justify-center my-3">
+              already have one?
+              <Link to="/login" className="mx-1 text-blue-500 hover:underline hover:text-blue-800">
+                Login
+              </Link>
+            </p>
+            <ToastContainer />
+          </div>
+        </div>
       </div>
-    </section>
+    </>
   );
 };
 

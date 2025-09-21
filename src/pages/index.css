@@ -1,0 +1,9 @@
+#centering_this_div {
+  width: auto;
+  /* FIX: Not perfectly centered */
+  /* max-width: 500px; */
+  left: 50%;
+  top: 50%;
+  position: absolute;
+  transform: translate(-65%, -50%) scale(1);
+}
