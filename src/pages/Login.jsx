@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
-import "./index.css";
+import "./login.css";
 
 export default function Login() {
 
