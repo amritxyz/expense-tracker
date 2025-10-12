@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const { create_table, insert_user, get_users, get_user_by_email } = require('./db/login_statements');
+const { create_expense_table, insert_expense, get_expense, get_user_by_email, get_expense_by_categorie } = require('./db/expense_income');
 const app = express();
 
 /*
@@ -20,6 +21,7 @@ app.use(express.json());
 
 /* INFO: Create the table when the server starts */
 create_table();
+create_expense_table();
 
 /*
  * INFO: POST /register - Register a new user
@@ -81,6 +83,21 @@ app.post('/login', (req, res) => {
   }
 });
 
+app.post('/expense', (req, res) => {
+  const { categories, amount, date } = req.body;
+
+  if (!categories || !amount || !date) {
+    return res.status(400).json({ message: "Categories, Amount and Date are required" });
+  }
+
+  try {
+    insert_expense(categories, amount, date);
+    res.status(200).json({ message: 'Inserted expense successfully' });
+  } catch (err) {
+    console.error("Error during insertion of expenses", err);
+    return res.status(500).json({ message: 'Internal Server Error', error: err.message })
+  }
+});
 
 /* Start the server */
 app.listen(5000, () => {
