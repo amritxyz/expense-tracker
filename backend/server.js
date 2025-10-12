@@ -11,9 +11,9 @@ const app = express();
 app.use(cors());
 
 app.use(cors({
-  origin: 'http://localhost:5173',  /* Allow requests from your frontend */
+  origin: 'http://localhost:5173',  /* Allow requests from frontend */
   methods: ['GET', 'POST'],        /* Allow GET and POST methods */
-  credentials: true                 /* Allow cookies if necessary */
+  credentials: true                 /* Allow cookies (if necessary) */
 }));
 
 app.use(express.json());
@@ -40,7 +40,7 @@ app.post('/register', (req, res) => {
 });
 
 /*
- * GET /users - Get all users
+ * INFO: GET /users
  */
 app.get('/users', (req, res) => {
   try {
