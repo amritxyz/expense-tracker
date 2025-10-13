@@ -3,7 +3,7 @@ import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
 // Create the context
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 // Custom hook to use the auth context
 export const useAuth = () => {
