@@ -35,7 +35,7 @@ const Signup = () => {
 
       if (result.success) {
         toast.success("Registration successful!");
-        setTimeout(() => navigate('/login'), 1500); // Redirect to login
+        setTimeout(() => navigate('/login'), 1500); // Redirect to login after registration
       } else {
         toast.error(result.message);
       }
@@ -46,92 +46,103 @@ const Signup = () => {
     }
   };
 
-  {/* <section className="from-black to-gray-800 bg-gradient-to-t h-screen max-w-lvw mx-auto flex justify-center items-center"> */ }
   return (
     <>
-      <div className="from-black to-gray-800 bg-gradient-to-t h-screen">
-        <div id="centering_this_div">
-          <div className="w-[100%] h-[100%] m-10 p-6 bg-gray-100 shadow-md rounded-2xl">
-            <h2 className="text-2xl text-[#303030] font-semibold mb-6 text-center">SignUp</h2>
-
-            <Formik
-              initialValues={initialValues}
-              validationSchema={validationSchema}
-              onSubmit={onSubmit}
-            >
-              {({ isSubmitting }) => (
-                <Form>
-                  {[
-                    {
-                      name: 'user',
-                      label: 'Full Name',
-                      type: 'text',
-                      placeholder: 'Enter your full name',
-                    },
-                    {
-                      name: 'email',
-                      label: 'Email',
-                      type: 'email',
-                      placeholder: 'Enter your email',
-                    },
-                    {
-                      name: 'password',
-                      label: 'Password',
-                      type: 'password',
-                      placeholder: 'Enter your password',
-                    },
-                  ].map((field) => (
-                    <div key={field.name} className="mb-4">
-                      <label htmlFor={field.name} className="block text-sm font-medium text-gray-700">
-                        {field.label}
-                      </label>
-
-                      {field.type === 'textarea' ? (
-                        <Field
-                          as="textarea"
-                          id={field.name}
-                          name={field.name}
-                          rows="3"
-                          placeholder={field.placeholder}
-                          className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
-                        />
-                      ) : (
-                        <Field
-                          type={field.type}
-                          id={field.name}
-                          name={field.name}
-                          placeholder={field.placeholder}
-                          className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
-                        />
-                      )}
-
-                      <ErrorMessage
-                        name={field.name}
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-                  ))}
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition duration-200 disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Registering...' : 'Register'}
-                  </button>
-                </Form>
-              )}
-            </Formik>
-
-            <p className="flex items-center justify-center my-3">
-              already have one?
-              <Link to="/login" className="mx-1 text-blue-500 hover:underline hover:text-blue-800">
-                Login
-              </Link>
-            </p>
-            <ToastContainer />
+      <div className="bg-blue-50 h-screen flex items-center justify-center">
+        <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
+          {/* Logo Section */}
+          <div className="flex gap-1.5 items-center justify-center my-5">
+            <div className='rounded-full h-8 w-8 flex items-center justify-center
+             bg-gradient-to-r from-blue-500 to-purple-500'>
+              <span className='text-white font-bold text-sm'>ExT</span>
+            </div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
+              ExpenseTracker
+            </span>
           </div>
+
+          {/* Signup Header */}
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Sign Up</h2>
+          <p className="text-gray-600 text-sm mb-6 text-center">Create an account to get started</p>
+
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={onSubmit}
+          >
+            {({ isSubmitting }) => (
+              <Form>
+                {/* Full Name Field */}
+                <div className="mb-4">
+                  <label htmlFor="user" className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <Field
+                    type="text"
+                    id="user"
+                    name="user"
+                    placeholder="Enter your full name"
+                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <ErrorMessage
+                    name="user"
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
+
+                {/* Email Field */}
+                <div className="mb-4">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                  <Field
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <ErrorMessage
+                    name="email"
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
+
+                {/* Password Field */}
+                <div className="mb-6">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                  <Field
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <ErrorMessage
+                    name="password"
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
+
+                {/* Register Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-2 px-4 rounded-md hover:from-blue-700 hover:to-purple-700 transition duration-300"
+                >
+                  {isSubmitting ? 'Registering...' : 'Register'}
+                </button>
+              </Form>
+            )}
+          </Formik>
+
+          {/* Login Link */}
+          <p className="text-center text-sm mt-4 text-gray-600">
+            Already have an account?
+            <Link to="/login" className="text-blue-500 hover:text-blue-700">Login</Link>
+          </p>
+
+          {/* Toast Notifications */}
+          <ToastContainer />
         </div>
       </div>
     </>

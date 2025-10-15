@@ -1,3 +1,4 @@
+import React from "react";
 import { Route, Routes, BrowserRouter } from "react-router-dom";
 import Hero from "./pages/Hero";
 import Login from "./pages/Login";

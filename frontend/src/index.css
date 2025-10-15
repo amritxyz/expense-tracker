@@ -3,23 +3,17 @@
 @import "tailwindcss";
 
 /* /* Black and White Monochrome Palette */
-*/
 /* :root { */
 /*   --black: #000000; */
 /*   /* Pure Black */
-*/
 /*   --white: #ffffff; */
 /*   /* Pure White */
-*/
 /*   --gray-light: #f4f4f4; */
 /*   /* Very light gray */
-*/
 /*   --gray-medium: #b0b0b0; */
 /*   /* Medium gray */
-*/
 /*   --gray-dark: #333333; */
 /*   /* Dark gray */
-*/
 /*   --light-blue: ; */
 /* } */
 /**/
@@ -29,26 +23,18 @@
 /* } */
 /**/
 /* /* a { */
-*/
 /* /*   color: var(--black); */
-*/
 /* /* } */
-*/
 /* /**/
-*/
 /* /* a:hover { */
-*/
 /* /*   color: var(--color-blue-500); */
-*/
 /* /* } */
-*/
 /**/
 /* button { */
 /*   background-color: var(--black); */
 /*   color: var(--white); */
 /*   border: none; */
 /*   /* 1px solid var(--gray-light); */
-*/
 /* } */
 /**/
 /* button:hover { */

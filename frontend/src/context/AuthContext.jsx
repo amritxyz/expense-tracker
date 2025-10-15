@@ -1,5 +1,5 @@
 /* src/context/AuthContext.js */
-import { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
 // Create the context
