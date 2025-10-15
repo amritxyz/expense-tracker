@@ -3,7 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const { create_table, insert_user, get_users, get_user_by_email } = require('./db/login_statements');
-const { create_expense_table, insert_expense, get_expense, get_user_by_email, get_expense_by_categorie } = require('./db/expense_income');
+const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie } = require('./db/expense_income');
 const app = express();
 
 /*

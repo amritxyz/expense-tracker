@@ -22,7 +22,7 @@ const expense_attributes = `
   ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
   ${second_attr}  TEXT NOT NULL,
   ${third_attr}  INTEGER NOT NULL,
-  ${extra_attr}   DATETIME DEFAULT
+  ${extra_attr}   DATETIME
 `;
 
 /*
@@ -66,7 +66,7 @@ function create_expense_table() {
 //   try {
 //     db.prepare(sql).run();
 //     console.log(`[✓] Table ${income_table} created or already exists.`);
-//   } catch {
+//   } catch (err) {
 //     console.error(`[x] Failed to create table: `, err.message);
 //   }
 // }
