@@ -1,16 +1,14 @@
-/* src/context/AuthContext.js */
+// src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+// import { useNavigate } from 'react-router-dom';
 
 // Create the context
 export const AuthContext = createContext();
 
-// Custom hook to use the auth context
+// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
   return context;
 };
 
@@ -19,14 +17,19 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // const navigate = useNavigate();
 
-  // Check if user is already logged in (on app load)
+  // Check if user is already logged in
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    if (token) {
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1])); // Decode the JWT (just to extract user data)
+        setUser({ email: decoded.email, id: decoded.id });
+      } catch (error) {
+        console.error('Invalid token', error);
+        setUser(null);
+      }
     }
     setLoading(false);
   }, []);
@@ -37,14 +40,18 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const response = await axios.post('http://localhost:5000/login', {
         email,
-        password
+        password,
       });
 
-      // Since your backend doesn't return a token, we'll create a simple session
-      const userData = { email }; // You might want to include more user data
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
+      const token = response.data.token;  // Assuming we return the JWT in the response
 
+      /* INFO: Save the token to localStorage */
+      localStorage.setItem('token', token);
+
+      /* INFO: Decode the token to extract user info (or we can store user details directly in the token) */
+      const decoded = JSON.parse(atob(token.split('.')[1])); // Decode JWT
+
+      setUser({ email: decoded.email, id: decoded.id });
       return { success: true, message: response.data.message };
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Login failed';
@@ -60,9 +67,8 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.post('http://localhost:5000/register', {
         user_name,
         email,
-        password
+        password,
       });
-
       return { success: true, message: response.data.message };
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Registration failed';
@@ -73,18 +79,22 @@ export const AuthProvider = ({ children }) => {
 
   // Logout function
   const logout = () => {
-    localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
+    // navigate('/login');
   };
 
   // Value object for the context
   const value = {
     user,
+    setUser,
     login,
     register,
     logout,
     loading,
-    error
+    setLoading,
+    error,
+    setError,
   };
 
   return (

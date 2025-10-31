@@ -1,3 +1,4 @@
 express
 better-sqlite3
 cors
+jsonwebtoken
