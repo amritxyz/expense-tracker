@@ -1,7 +1,7 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-// import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
 // Create the context
 export const AuthContext = createContext();
@@ -15,9 +15,9 @@ export const useAuth = () => {
 // Auth Provider component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isLogged, setIsLogged] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // const navigate = useNavigate();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const decoded = JSON.parse(atob(token.split('.')[1])); // Decode the JWT (just to extract user data)
         setUser({ email: decoded.email, id: decoded.id });
+        setIsLogged(true);
       } catch (error) {
         console.error('Invalid token', error);
         setUser(null);
@@ -52,6 +53,9 @@ export const AuthProvider = ({ children }) => {
       const decoded = JSON.parse(atob(token.split('.')[1])); // Decode JWT
 
       setUser({ email: decoded.email, id: decoded.id });
+
+      setIsLogged(true);
+
       return { success: true, message: response.data.message };
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Login failed';
@@ -81,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    // navigate('/login');
+    setIsLogged(false);
   };
 
   // Value object for the context
@@ -95,6 +99,8 @@ export const AuthProvider = ({ children }) => {
     setLoading,
     error,
     setError,
+    isLogged,
+    setIsLogged,
   };
 
   return (

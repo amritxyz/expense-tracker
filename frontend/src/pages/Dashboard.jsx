@@ -1,4 +1,5 @@
 import Navbar_auth from "./Navbar_auth";
+import Navbar from "./Navbar";
 
 export default function Dashboard() {
   return (
@@ -9,6 +10,7 @@ export default function Dashboard() {
         * TODO: A vertical Navbar...
         */}
       <Navbar_auth />
+      <Navbar />
     </>
   );
 }
