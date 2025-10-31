@@ -1,4 +1,4 @@
-/* src/components/Login.jsx (Updated) */
+// src/components/Login.jsx
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
@@ -7,7 +7,6 @@ import { useAuth } from "../context/AuthContext";
 import "./login.css";
 
 export default function Login() {
-
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -28,10 +27,9 @@ export default function Login() {
   const onSubmit = async (values, { setSubmitting }) => {
     try {
       const result = await login(values.email, values.password);
-
       if (result.success) {
         toast.success("Login successful!");
-        setTimeout(() => navigate('/dashboard'), 1500); // Redirect after success
+        setTimeout(() => navigate('/dashboard'), 1500); // Automatically redirect after success
       } else {
         toast.error(result.message);
       }
@@ -48,8 +46,7 @@ export default function Login() {
         <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
           {/* Logo Section */}
           <div className="flex gap-1.5 items-center justify-center my-5">
-            <div className='rounded-full h-8 w-8 flex items-center justify-center
-             bg-gradient-to-r from-blue-500 to-purple-500'>
+            <div className='rounded-full h-8 w-8 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500'>
               <span className='text-white font-bold text-sm'>ExT</span>
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
@@ -102,25 +99,26 @@ export default function Login() {
                   />
                 </div>
 
-                {/* Login Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-2 px-4 rounded-md hover:from-blue-700 hover:to-purple-700 transition duration-300"
-                >
-                  {isSubmitting ? 'Logging in...' : 'Login'}
-                </button>
+                {/* Submit Button */}
+                <div className="flex justify-center mb-4">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    {isSubmitting ? "Logging in..." : "Log In"}
+                  </button>
+                </div>
+
+                <p className="text-sm text-center">
+                  Don't have an account?{" "}
+                  <Link to="/signup" className="text-blue-500 hover:text-blue-700">Register here</Link>
+                </p>
               </Form>
             )}
           </Formik>
 
-          {/* Sign up Link */}
-          <p className="text-center text-sm mt-4 text-gray-600">
-            Don't have an account?
-            <Link to="/signup" className="text-blue-500 hover:text-blue-700">Sign up</Link>
-          </p>
-
-          {/* Toast Notifications */}
+          {/* Toast notifications */}
           <ToastContainer />
         </div>
       </div>
