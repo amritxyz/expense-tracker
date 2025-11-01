@@ -1,7 +1,6 @@
 import VerticalNavbar from "./VerticalNavbar";
-import Recent from "./Recent";
 
-export default function Dashboard() {
+export default function Income() {
   return (
     <>
       <div className="bg-blue-50">
@@ -9,7 +8,7 @@ export default function Dashboard() {
           <VerticalNavbar />
         </div>
         <div className="md:ml-64 h-screen bg-blue-50">
-          <Recent />
+          This is Income section.
         </div>
       </div>
     </>

@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 export default function VerticalNavbar() {
   const menuList = [
     { id: 1, name: "Dashboard", link: "/dashboard" },
-    { id: 2, name: "Expenses", link: "/dashboard/expenses" },
+    { id: 2, name: "Expense", link: "/dashboard/expense" },
     { id: 3, name: "Income", link: "/dashboard/income" },
     { id: 4, name: "Profile", link: "/profile" }
   ];
@@ -11,7 +11,7 @@ export default function VerticalNavbar() {
   const location = useLocation();  // Use location object from `useLocation`
 
   return (
-    <div className="flex flex-col h-screen p-4 text-black">
+    <div className="flex flex-col h-screen p-4 text-black bg-blue-50">
       {/* Logo Section */}
       <div className="flex items-center gap-2 mb-6">
         <Link to="/dashboard" className="flex items-center gap-2">
@@ -30,7 +30,7 @@ export default function VerticalNavbar() {
           <Link
             key={value.id}
             to={value.link}
-            className={`text-lg hover:bg-current/10 px-4 py-2 rounded-lg transition duration-200 ${location.pathname === value.link ? 'bg-current/10' : ''}`}
+            className={`text-lg hover:bg-current/5 px-4 py-2 rounded-lg transition duration-200 ${location.pathname === value.link ? 'bg-current/10 shadow-lg hover:bg-current/10 shadow-current/10' : ''}`}
           >
             {value.name}
           </Link>

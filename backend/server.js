@@ -4,14 +4,14 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { create_table, insert_user, get_users, get_user_by_email } = require('./db/login_statements');
-const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie } = require('./db/expense_income');
+const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user } = require('./db/expense_income');
 const app = express();
 
 /* INFO: Enable cors for all origins */
 app.use(cors());
 app.use(cors({
   origin: 'http://localhost:5173',  /* Allow requests from frontend */
-  methods: ['GET', 'POST'],        /* Allow GET and POST methods */
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],        /* Allow GET and POST methods */
   credentials: true                 /* Allow cookies (if necessary) */
 }));
 
@@ -25,7 +25,7 @@ create_expense_table();
 function generateToken(user) {
   const payload = { id: user.id, email: user.email };  // Include user ID and email in the token
   const secret = 'your_jwt_secret_key';
-  const options = { expiresIn: '1m' };  // Token expiration time
+  const options = { expiresIn: '1h' };  // Token expiration time
   return jwt.sign(payload, secret, options);
 }
 
@@ -102,17 +102,30 @@ const authenticateJWT = (req, res, next) => {
 /* POST /expense - Create an expense (Protected route) */
 app.post('/expense', authenticateJWT, (req, res) => {
   const { categories, amount, date } = req.body;
+  const user_id = req.user.id;
 
   if (!categories || !amount || !date) {
     return res.status(400).json({ message: "Categories, Amount and Date are required" });
   }
 
   try {
-    insert_expense(categories, amount, date);
+    insert_expense(user_id, categories, amount, date);
     res.status(200).json({ message: 'Inserted expense successfully' });
   } catch (err) {
     console.error("Error during insertion of expenses", err);
     return res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+});
+
+app.get('/expenses', authenticateJWT, (req, res) => {
+  const user_id = req.user.id;  // Get the logged-in user's ID from the token
+
+  try {
+    const expenses = get_expenses_by_user(user_id);  // Get expenses for the logged-in user
+    res.status(200).json(expenses);
+  } catch (err) {
+    console.error("Error fetching expenses", err);
+    res.status(500).json({ message: "Error fetching expenses", error: err.message });
   }
 });
 

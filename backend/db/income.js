@@ -17,15 +17,12 @@ const first_attr = 'id';
 const second_attr = 'categories';
 const third_attr = 'amount';
 const extra_attr = 'date';
-const userid_attr = 'user_id';
 
 const expense_attributes = `
   ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
-  ${userid_attr} INTEGER NOT NULL,
   ${second_attr}  TEXT NOT NULL,
   ${third_attr}  INTEGER NOT NULL,
-  ${extra_attr}   DATETIME,
-  FOREIGN KEY (user_id) REFERENCES login_users(id)
+  ${extra_attr}   DATETIME
 `;
 
 /*
@@ -77,13 +74,13 @@ function create_expense_table() {
 /*
  * INFO: Function to insert a expense
  */
-function insert_expense(user_id, categories, amount, date) {
+function insert_expense(categories, amount, date) {
   const sql = `
-    INSERT INTO ${expense_table} (user_id, ${second_attr}, ${third_attr}, ${extra_attr})
-    VALUES (?, ?, ?, ?)
+    INSERT INTO ${expense_table} (${second_attr}, ${third_attr}, ${extra_attr})
+    VALUES (?, ?, ?)
   `;
   try {
-    const result = db.prepare(sql).run(user_id, categories, amount, date);
+    const result = db.prepare(sql).run(categories, amount, date);
     console.log(`[✓] Inserted expense with ID: ${result.lastInsertRowid}`);
   } catch (err) {
     console.error(`[x] Failed to insert expense: `, err.message);
@@ -108,16 +105,5 @@ function get_expense_by_categorie(categories) {
   return db.prepare(`SELECT * FROM ${expense_table} WHERE categories = ?`).get(categories);
 }
 
-function get_expenses_by_user(user_id) {
-  const sql = `SELECT * FROM ${expense_table} WHERE user_id = ?`;
-  try {
-    const rows = db.prepare(sql).all(user_id);
-    console.log(`[✓] Expenses for user ${user_id}: `, rows);
-    return rows;
-  } catch (err) {
-    console.error(`[x] Failed to fetch expenses for user: `, err.message);
-  }
-}
-
 // Exporting functions
-module.exports = { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user };
+module.exports = { create_expense_table, insert_expense, get_expense, get_expense_by_categorie };

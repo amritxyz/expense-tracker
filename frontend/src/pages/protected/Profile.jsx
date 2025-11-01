@@ -1,7 +1,6 @@
-import VerticalNavbar from "./VerticalNavbar";
-import Recent from "./Recent";
+import VerticalNavbar from "./VerticalNavbar"
 
-export default function Dashboard() {
+export default function Profile() {
   return (
     <>
       <div className="bg-blue-50">
@@ -9,9 +8,9 @@ export default function Dashboard() {
           <VerticalNavbar />
         </div>
         <div className="md:ml-64 h-screen bg-blue-50">
-          <Recent />
+          This is profile section.
         </div>
       </div>
     </>
-  );
+  )
 }
