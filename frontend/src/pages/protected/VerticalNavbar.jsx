@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function VerticalNavbar() {
   const menuList = [
@@ -9,6 +10,7 @@ export default function VerticalNavbar() {
   ];
 
   const location = useLocation();  // Use location object from `useLocation`
+  const { logout } = useAuth();
 
   return (
     <div className="flex flex-col h-screen p-4 text-black bg-blue-50">
@@ -25,16 +27,23 @@ export default function VerticalNavbar() {
       </div>
 
       {/* Menu List */}
-      <div className="flex flex-col gap-4">
-        {menuList.map((value) => (
-          <Link
-            key={value.id}
-            to={value.link}
-            className={`text-lg hover:bg-current/5 px-4 py-2 rounded-lg transition duration-200 ${location.pathname === value.link ? 'bg-current/10 shadow-lg hover:bg-current/10 shadow-current/10' : ''}`}
-          >
-            {value.name}
-          </Link>
-        ))}
+      <div className="flex flex-col justify-between h-full">
+        <div className="flex flex-col gap-4">
+          {menuList.map((value) => (
+            <Link
+              key={value.id}
+              to={value.link}
+              className={`text-lg hover:bg-current/5 px-4 py-2 rounded-lg transition duration-200 ${location.pathname === value.link ? 'bg-current/10 shadow-lg hover:bg-current/10 shadow-current/10' : ''}`}
+            >
+              {value.name}
+            </Link>
+          ))}
+        </div>
+        <Link onClick={logout} to="/login"
+          className={`text-lg  text-center bg-red-100 hover:bg-current/5 px-4 py-2 mb-6 rounded-lg transition duration-200`}
+        >
+          Logout
+        </Link>
       </div>
     </div>
   );

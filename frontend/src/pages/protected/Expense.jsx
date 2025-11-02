@@ -4,6 +4,7 @@ import VerticalNavbar from "./VerticalNavbar";
 
 export default function Expense() {
   /* INFO: useStates */
+  const [exp_name, setExp_name] = useState("");
   const [categories, setCategories] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
@@ -12,12 +13,13 @@ export default function Expense() {
     e.preventDefault();
 
     /* Make sure form is filled */
-    if (!categories || !amount || !date) {
+    if (!exp_name || !categories || !amount || !date) {
       alert("Please Fill in all fields")
       return;
     }
 
     const expenseData = {
+      exp_name,
       categories,
       amount: parseFloat(amount),
       date
@@ -37,6 +39,7 @@ export default function Expense() {
       const data = await response.json();
       if (response.ok) {
         alert("Expense added successfully.");
+        setExp_name();
         setCategories();
         setAmount();
         setDate();
@@ -68,6 +71,17 @@ export default function Expense() {
         <div className="md:ml-64 h-screen bg-blue-50">
           <h2>Add an Expense</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="exp_name" className="block">name</label>
+              <input
+                type="text"
+                id="exp_name"
+                value={exp_name}
+                onChange={(e) => setExp_name(e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+
             <div>
               <label htmlFor="categories" className="block">Category</label>
               <input

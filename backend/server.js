@@ -4,7 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { create_table, insert_user, get_users, get_user_by_email } = require('./db/login_statements');
-const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user } = require('./db/expense_income');
+const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user } = require('./db/expense');
+const { create_income_table, insert_income, get_income, get_income_by_user } = require('./db/income');
 const app = express();
 
 /* INFO: Enable cors for all origins */
@@ -20,6 +21,7 @@ app.use(express.json());  // Parse JSON requests
 // Create tables when the server starts
 create_table();
 create_expense_table();
+create_income_table();
 
 // Function to generate JWT token
 function generateToken(user) {
@@ -101,15 +103,15 @@ const authenticateJWT = (req, res, next) => {
 
 /* POST /expense - Create an expense (Protected route) */
 app.post('/expense', authenticateJWT, (req, res) => {
-  const { categories, amount, date } = req.body;
+  const { exp_name, categories, amount, date } = req.body;
   const user_id = req.user.id;
 
-  if (!categories || !amount || !date) {
+  if (!exp_name || !categories || !amount || !date) {
     return res.status(400).json({ message: "Categories, Amount and Date are required" });
   }
 
   try {
-    insert_expense(user_id, categories, amount, date);
+    insert_expense(user_id, exp_name, categories, amount, date);
     res.status(200).json({ message: 'Inserted expense successfully' });
   } catch (err) {
     console.error("Error during insertion of expenses", err);
@@ -122,6 +124,35 @@ app.get('/expenses', authenticateJWT, (req, res) => {
 
   try {
     const expenses = get_expenses_by_user(user_id);  // Get expenses for the logged-in user
+    res.status(200).json(expenses);
+  } catch (err) {
+    console.error("Error fetching expenses", err);
+    res.status(500).json({ message: "Error fetching expenses", error: err.message });
+  }
+});
+
+app.post('/income', authenticateJWT, (req, res) => {
+  const { inc_name, amount, date } = req.body;
+  const user_id = req.user.id;
+
+  if (!inc_name || !amount || !date) {
+    return res.status(400).json({ message: "Categories, Amount and Date are required" });
+  }
+
+  try {
+    insert_income(user_id, inc_name, amount, date);
+    res.status(200).json({ message: 'Inserted expense successfully' });
+  } catch (err) {
+    console.error("Error during insertion of expenses", err);
+    return res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+});
+
+app.get('/income', authenticateJWT, (req, res) => {
+  const user_id = req.user.id;  // Get the logged-in user's ID from the token
+
+  try {
+    const expenses = get_income_by_user(user_id);  // Get expenses for the logged-in user
     res.status(200).json(expenses);
   } catch (err) {
     console.error("Error fetching expenses", err);

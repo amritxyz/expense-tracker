@@ -1,4 +1,4 @@
-// backend/db/expense_income.js
+// backend/db/income.js
 
 const Database = require('better-sqlite3');
 const path = require('path');
@@ -10,100 +10,78 @@ const dbPath = path.join(__dirname, 'database.db');
 const db = new Database(dbPath, { verbose: console.log });
 
 /*
- * INFO: Define table attributes and create table if not exists
+ * TODO: feature to add income or set budget and show report and warning accordingly
  */
-const expense_table = 'expense';
-const first_attr = 'id';
-const second_attr = 'categories';
-const third_attr = 'amount';
-const extra_attr = 'date';
+const income_table = 'income';
 
-const expense_attributes = `
-  ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
-  ${second_attr}  TEXT NOT NULL,
-  ${third_attr}  INTEGER NOT NULL,
-  ${extra_attr}   DATETIME
+const income_attributes = `
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  inc_name TEXT NOT NULL,
+  categories TEXT DEFAULT 'income',
+  amount INTEGER NOT NULL,
+  date   DATETIME,
+  FOREIGN KEY (user_id) REFERENCES login_users(id)
 `;
 
 /*
- * TODO: feature to add income or set budget and show report and warning accordingly
+ * TODO: Function to crate income table or budget table.
+ * NOTE: (useless) might be useful in the future.
  */
-// const income_table = 'income';
-// const income_attributes = `
-//   ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
-//   ${second_attr}  TEXT NOT NULL,
-//   ${third_attr}  INTEGER NOT NULL,
-//   ${extra_attr}   DATETIME DEFAULT
-// `;
-
-/*
- * INFO: Function to create table if it doesn't exist
- */
-function create_expense_table() {
+function create_income_table() {
   const sql = `
-    CREATE TABLE IF NOT EXISTS ${expense_table} (
-      ${expense_attributes}
+    CREATE TABLE IF NOT EXISTS ${income_table} (
+      ${income_attributes}
     )
   `;
   try {
     db.prepare(sql).run();
-    console.log(`[✓] Table ${expense_table} created or already exists.`);
+    console.log(`[✓] Table ${income_table} created or already exists.`);
   } catch (err) {
     console.error(`[x] Failed to create table: `, err.message);
   }
 }
 
 /*
- * TODO: Function to crate income table or budget table.
- * NOTE: (useless) might be useful in the future.
+ * INFO: Function to insert a income
  */
-// function create_income_table() {
-//   const sql = `
-//     CREATE TABLE IF NOT EXISTS ${income_table} (
-//       ${income_attributes}
-//     )
-//   `;
-//   try {
-//     db.prepare(sql).run();
-//     console.log(`[✓] Table ${income_table} created or already exists.`);
-//   } catch (err) {
-//     console.error(`[x] Failed to create table: `, err.message);
-//   }
-// }
-
-/*
- * INFO: Function to insert a expense
- */
-function insert_expense(categories, amount, date) {
+function insert_income(user_id, inc_name, amount, date) {
   const sql = `
-    INSERT INTO ${expense_table} (${second_attr}, ${third_attr}, ${extra_attr})
-    VALUES (?, ?, ?)
+    INSERT INTO ${income_table} (user_id, inc_name, amount, date)
+    VALUES (?, ?, ?, ?)
   `;
   try {
-    const result = db.prepare(sql).run(categories, amount, date);
-    console.log(`[✓] Inserted expense with ID: ${result.lastInsertRowid}`);
+    const result = db.prepare(sql).run(user_id, inc_name, amount, date);
+    console.log(`[✓] Inserted income with ID: ${result.lastInsertRowid}`);
   } catch (err) {
-    console.error(`[x] Failed to insert expense: `, err.message);
+    console.error(`[x] Failed to insert income: `, err.message);
   }
 }
 
 /*
- * INFO: Function to get expense table attributes
+ * INFO: Function to get income table attributes
  */
-function get_expense() {
-  const sql = `SELECT * FROM ${expense_table}`;
+function get_income() {
+  const sql = `SELECT * FROM ${income_table}`;
   try {
     const rows = db.prepare(sql).all();
-    console.log(`[✓] All expenses: `, rows);
+    console.log(`[✓] All income: `, rows);
     return rows;
   } catch (err) {
-    console.error(`[x] Failed to fetch expenses: `, err.message);
+    console.error(`[x] Failed to fetch income: `, err.message);
   }
 }
 
-function get_expense_by_categorie(categories) {
-  return db.prepare(`SELECT * FROM ${expense_table} WHERE categories = ?`).get(categories);
+function get_income_by_user(user_id) {
+  const sql = `SELECT * FROM ${income_table} WHERE user_id = ?`;
+  try {
+    const rows = db.prepare(sql).all(user_id);
+    console.log(`[✓] Income for user ${user_id}: `, rows);
+    return rows;
+  } catch (err) {
+    console.error(`[x] Failed to fetch income for user: `, err.message);
+  }
 }
 
 // Exporting functions
-module.exports = { create_expense_table, insert_expense, get_expense, get_expense_by_categorie };
+module.exports = { create_income_table, insert_income, get_income, get_income_by_user };
