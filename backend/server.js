@@ -27,7 +27,7 @@ create_income_table();
 function generateToken(user) {
   const payload = { id: user.id, email: user.email };  // Include user ID and email in the token
   const secret = 'your_jwt_secret_key';
-  const options = { expiresIn: '1h' };  // Token expiration time
+  const options = { expiresIn: '100h' };  // Token expiration time
   return jwt.sign(payload, secret, options);
 }
 
