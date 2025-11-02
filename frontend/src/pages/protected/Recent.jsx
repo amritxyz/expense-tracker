@@ -44,6 +44,9 @@ export default function Recent() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
+  const totalBudget = totalIncome - totalExpense;
+  const percentageBudget = (totalBudget * 100) / totalIncome;
+
   const doughnutData = {
     labels: ["Income", "Expenses"],
     datasets: [
@@ -146,14 +149,35 @@ export default function Recent() {
   };
 
   return (
-    <section className="flex flex-col items-center space-y-6">
-      {/* Doughnut Chart */}
+    <section className="flex flex-col items-center space-y-6 ">
+
+      <div className="w-full flex items-center justify-center mt-6">
+        <div className="w-[90%] border border-gray-300 rounded-2xl p-5 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <p className="text-gray-600 text-sm font-medium">Available Balance</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">Rs {totalBudget}</p>
+        </div>
+      </div>
+      <div className="w-full flex items-center justify-center">
+        <div className="grid grid-cols-2 gap-4 w-[90%]">
+          <div className="border border-gray-300 rounded-2xl p-4 bg-gradient-to-r from-red-50 to-yellow-50">
+            <p className="text-gray-600 text-sm font-medium">Spent This Month</p>
+            <p className="text-lg font-bold text-red-600 mt-1">Rs {totalExpense}</p>
+          </div>
+          <div className="border border-gray-300 rounded-2xl p-4 bg-gradient-to-r from-green-50 to-teal-50">
+            <p className="text-gray-600 text-sm font-medium">Budget Left</p>
+            <p className="text-lg font-bold text-green-600 mt-1">{Math.round(percentageBudget) == "-Infinity" ? "Nil" : Math.round(percentageBudget)} %</p>
+          </div>
+        </div>
+      </div>
+
       <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
         <div className="flex items-center justify-between">
+          {/* Doughnut Chart */}
           <div className="w-[300px] md:w-[400px] p-4 ">
             <Doughnut data={doughnutData} />
             <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
           </div>
+          {/* Bar Chart */}
           <div className="w-[400px] md:w-[800px] p-4">
             <Bar data={barData} />
             <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Bar chart </p>
@@ -176,7 +200,7 @@ export default function Recent() {
             >
               <div>
                 <p className="font-medium text-gray-900 capitalize">
-                  {item.name || item.exp_name}
+                  {item.inc_name || item.exp_name}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{item.type}</p>
               </div>
@@ -191,7 +215,7 @@ export default function Recent() {
                   : "text-red-600"
                   }`}
               >
-                {item.amount}
+                Rs. {item.amount}
               </span>
             </div>
           ))}
