@@ -3,9 +3,16 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+
+const Database = require('better-sqlite3');
+const path = require('path');
+const dbPath = path.join(__dirname, './db/database.db');
+const db = new Database(dbPath, { verbose: console.log });
+
 const { create_table, insert_user, get_users, get_user_by_email } = require('./db/login_statements');
 const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user } = require('./db/expense');
 const { create_income_table, insert_income, get_income, get_income_by_user } = require('./db/income');
+
 const app = express();
 
 /* INFO: Enable cors for all origins */
@@ -131,6 +138,25 @@ app.get('/expenses', authenticateJWT, (req, res) => {
   }
 });
 
+app.delete('/expenses/:id', authenticateJWT, (req, res) => {
+  const { id } = req.params;
+  const deleteSql = `DELETE FROM expense WHERE id = ?`;
+
+  try {
+    const result = db.prepare(deleteSql).run(id);
+    console.log("Delete result:", result);
+
+    if (result && result.changes > 0) {
+      res.status(200).json({ message: `Expense with ID: ${id} deleted successfully.` });
+    } else {
+      res.status(404).json({ message: `Expense with ID: ${id} not found.` });
+    }
+  } catch (err) {
+    console.error("Error deleting expense:", err.message);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+});
+
 app.post('/income', authenticateJWT, (req, res) => {
   const { inc_name, amount, date } = req.body;
   const user_id = req.user.id;
@@ -157,6 +183,25 @@ app.get('/income', authenticateJWT, (req, res) => {
   } catch (err) {
     console.error("Error fetching expenses", err);
     res.status(500).json({ message: "Error fetching expenses", error: err.message });
+  }
+});
+
+app.delete('/income/:id', authenticateJWT, (req, res) => {
+  const { id } = req.params;
+  const deleteSql = `DELETE FROM income WHERE id = ?`;
+
+  try {
+    const result = db.prepare(deleteSql).run(id);
+    console.log("Delete result:", result);
+
+    if (result && result.changes > 0) {
+      res.status(200).json({ message: `Income with ID: ${id} deleted successfully.` });
+    } else {
+      res.status(404).json({ message: `Income with ID: ${id} not found.` });
+    }
+  } catch (err) {
+    console.error("Error deleting income:", err.message);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 });
 

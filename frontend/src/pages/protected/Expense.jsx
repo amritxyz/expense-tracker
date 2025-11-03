@@ -13,6 +13,15 @@ export default function Expense() {
   const [categories, setCategories] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
+  const [doughnutData, setDoughnutData] = useState({
+    labels: [],
+    datasets: []
+  });
+
+  const [lineData, setLineData] = useState({
+    labels: [],
+    datasets: []
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -44,10 +53,13 @@ export default function Expense() {
       const data = await response.json();
       if (response.ok) {
         toast.success("Expense added successfully.");
-        setExp_name();
-        setCategories();
-        setAmount();
-        setDate();
+        setExp_name("");
+        setCategories("");
+        setAmount("");
+        setDate("");
+        // Add the new expense to the state and refresh chart
+        const newExpense = { ...expenseData, type: "expense", id: data.id }; // Assuming the response has the new expense ID
+        setTransactions(prevTransactions => [newExpense, ...prevTransactions]);
       } else {
         toast.error(data.message, "Failed to add expenses.");
       }
@@ -58,7 +70,47 @@ export default function Expense() {
     }
   };
 
+  async function handleDelete(id) {
+    toast.loading("Deleting expense...");
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`http://localhost:5000/expenses/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.dismiss();
+        toast.success("Expense deleted successfully.");
+        setTransactions(transactions.filter(transaction => transaction.id !== id));
+      } else {
+        toast.dismiss();
+        toast.error(data.message || "Failed to delete the expense.");
+      }
+    } catch (err) {
+      toast.dismiss();
+      console.log("Error deleting expense:", err);
+      toast.error("An error occurred while deleting the expense.");
+    }
+  }
+
   const [transactions, setTransactions] = useState([]);
+
+  // NOTE: data for doughnut chart
+  const categoryColors = {
+    Food: "#ffcc00", // Yellow for Food
+    Transportation: "#ffc0cb", // Green for Transportation
+    Entertainment: "#2196f3", // Blue for Entertainment
+    Utilities: "#ff5722", // Orange for Utilities
+    Shopping: "#9c27b0", // Purple for Shopping
+    Rent: "#673ab7", // Deep Purple for Rent
+    Others: "#f44336", // Red for Others
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -88,75 +140,81 @@ export default function Expense() {
       .catch((err) => console.error("Error fetching transactions:", err));
   }, []);
 
-  // NOTE: data for doughnut chart
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  useEffect(() => {
+    // Get the expense data
+    const expenseName = transactions
+      .filter((t) => t.type === "expense")
+      .map((t) => ({
+        name: t.categories,
+        amount: Number(t.amount)
+      }));
 
-  const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    const allExpenseName = expenseName.map((e) => e.name);
+    const allExpenseAmount = expenseName.map((e) => e.amount);
 
-  const totalBudget = totalIncome - totalExpense;
-  const percentageBudget = (totalBudget * 100) / totalIncome;
+    const expenseColors = allExpenseName.map((name) => categoryColors[name] || "#cccccc");
 
-  const doughnutData = {
-    labels: ["Income", "Expenses"],
-    datasets: [
-      {
-        data: [totalIncome, totalExpense],
-        backgroundColor: ["#4ade80", "#f87171"],
-        borderWidth: 1,
-      },
-    ],
-  };
+    setDoughnutData({
+      labels: allExpenseName,
+      datasets: [
+        {
+          data: allExpenseAmount,
+          backgroundColor: expenseColors,
+          borderWidth: 1,
+        },
+      ],
+    });
+  }, [transactions]);
 
   // INFO: Data for line chart
   // Get last 7 days
-  const getLast7Days = () => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(d.toISOString().split("T")[0]); // YYYY-MM-DD
-    }
-    return days;
-  };
+  useEffect(() => {
+    // Get the last 7 days
+    const getLast7Days = () => {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split("T")[0]); // YYYY-MM-DD
+      }
+      return days;
+    };
 
-  const last7Days = getLast7Days();
+    const last7Days = getLast7Days();
 
-  // Sum transactions per day
-  const incomePerDay = last7Days.map((day) =>
-    transactions
-      .filter((t) => t.type === "income" && t.date.startsWith(day))
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-  );
+    // Calculate the income and expenses per day
+    const incomePerDay = last7Days.map((day) =>
+      transactions
+        .filter((t) => t.type === "income" && t.date.startsWith(day))
+        .reduce((sum, t) => sum + Number(t.amount), 0)
+    );
 
-  const expensePerDay = last7Days.map((day) =>
-    transactions
-      .filter((t) => t.type === "expense" && t.date.startsWith(day))
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-  );
+    const expensePerDay = last7Days.map((day) =>
+      transactions
+        .filter((t) => t.type === "expense" && t.date.startsWith(day))
+        .reduce((sum, t) => sum + Number(t.amount), 0)
+    );
 
-  const lineData = {
-    labels: last7Days,
-    datasets: [
-      {
-        label: "Income",
-        data: incomePerDay,
-        borderColor: "#4ade80",
-        backgroundColor: "rgba(74, 222, 128, 0.2)",
-        tension: 0.4,
-      },
-      {
-        label: "Expenses",
-        data: expensePerDay,
-        borderColor: "#f87171",
-        backgroundColor: "rgba(248, 113, 113, 0.2)",
-        tension: 0.4,
-      },
-    ],
-  };
+    setLineData({
+      labels: last7Days,
+      datasets: [
+        {
+          label: "Income",
+          data: incomePerDay,
+          borderColor: "#4ade80",
+          backgroundColor: "rgba(74, 222, 128, 0.2)",
+          tension: 0.4,
+        },
+        {
+          label: "Expenses",
+          data: expensePerDay,
+          borderColor: "#f87171",
+          backgroundColor: "rgba(248, 113, 113, 0.2)",
+          tension: 0.4,
+        },
+      ],
+    });
+  }, [transactions]);
 
   // function AddCard() {
   //   return (
@@ -261,6 +319,27 @@ export default function Expense() {
                     onChange={(e) => setDate(e.target.value)}
                     className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                </div>
+
+                <div className="transactions-list">
+                  {transactions.filter((t) => t.type === "expense").map(transaction => (
+                    <div key={transaction.id} className="transaction-item">
+                      <div className="transaction-info">
+                        <p>Name: {transaction.exp_name}</p>
+                        <p>Category: {transaction.categories}</p>
+                        <p>Amount: {transaction.amount}</p>
+                        <p>Date: {transaction.date}</p>
+                      </div>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleDelete(transaction.id)}
+                        className="delete-button"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Submit Button */}

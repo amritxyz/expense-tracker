@@ -1,33 +1,35 @@
 import { useState, useEffect } from "react";
 import VerticalNavbar from "./VerticalNavbar";
-
 import { ToastContainer, toast } from "react-toastify";
-
-import { Doughnut, Line } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
 export default function Income() {
-  /* INFO: useStates */
   const [inc_name, setInc_name] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
+  const [transactions, setTransactions] = useState([]);
+  const [barChartData, setBarChartData] = useState({
+    labels: [],
+    datasets: []
+  });
+
+  const [lineData, setLineData] = useState({
+    labels: [],
+    datasets: []
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    /* Make sure form is filled */
     if (!inc_name || !amount || !date) {
-      toast.warn("Please Fill in all fields")
+      toast.warn("Please Fill in all fields");
       return;
     }
 
-    const incomeData = {
-      inc_name,
-      amount: parseFloat(amount),
-      date
-    };
+    const incomeData = { inc_name, amount: parseFloat(amount), date };
 
     try {
       const token = localStorage.getItem("token");
@@ -43,20 +45,46 @@ export default function Income() {
       const data = await response.json();
       if (response.ok) {
         toast.success("Income added successfully.");
-        setInc_name();
-        setAmount();
-        setDate();
+        setInc_name("");
+        setAmount("");
+        setDate("");
+
+        const newIncome = { ...incomeData, type: "income", id: data.id };
+        setTransactions((prevTransactions) => [newIncome, ...prevTransactions]);
       } else {
         toast.error(data.message, "Failed to add income.");
       }
-
     } catch (err) {
-      console.log("Error adding income.", err);
       toast.error("An error occurred while adding the income.");
     }
-  };
+  }
 
-  const [transactions, setTransactions] = useState([]);
+  async function handleDelete(id) {
+    toast.loading("Deleting expense...");
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`http://localhost:5000/income/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.dismiss();
+        toast.success("Expense deleted successfully.");
+        setTransactions((prevTransactions) =>
+          prevTransactions.filter((transaction) => transaction.id !== id)
+        );
+      } else {
+        toast.dismiss();
+        toast.error(data.message || "Failed to delete the expense.");
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error("An error occurred while deleting the expense.");
+    }
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -86,75 +114,80 @@ export default function Income() {
       .catch((err) => console.error("Error fetching transactions:", err));
   }, []);
 
-  // NOTE: data for doughnut chart
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  useEffect(() => {
+    if (transactions.length > 0) {
+      // Get the income data for the bar chart
+      const incomeData = transactions
+        .filter((t) => t.type === "income")
+        .map((t) => ({
+          name: t.inc_name,
+          amount: Number(t.amount),
+        }));
 
-  const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+      const allIncomeNames = incomeData.map((e) => e.name);
+      const allIncomeAmounts = incomeData.map((e) => e.amount);
 
-  const totalBudget = totalIncome - totalExpense;
-  const percentageBudget = (totalBudget * 100) / totalIncome;
-
-  const doughnutData = {
-    labels: ["Income", "Expenses"],
-    datasets: [
-      {
-        data: [totalIncome, totalExpense],
-        backgroundColor: ["#4ade80", "#f87171"],
-        borderWidth: 1,
-      },
-    ],
-  };
+      setBarChartData({
+        labels: allIncomeNames,
+        datasets: [
+          {
+            label: "Income Amount",
+            data: allIncomeAmounts,
+            backgroundColor: "#4caf50", // Green color for the bars
+            borderColor: "#388e3c",     // Darker green for borders
+            borderWidth: 1,
+          },
+        ],
+      });
+    }
+  }, [transactions]); // Re-run when transactions change
 
   // INFO: Data for line chart
-  // Get last 7 days
-  const getLast7Days = () => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(d.toISOString().split("T")[0]); // YYYY-MM-DD
-    }
-    return days;
-  };
+  useEffect(() => {
+    const getLast7Days = () => {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split("T")[0]); // YYYY-MM-DD
+      }
+      return days;
+    };
 
-  const last7Days = getLast7Days();
+    const last7Days = getLast7Days();
 
-  // Sum transactions per day
-  const incomePerDay = last7Days.map((day) =>
-    transactions
-      .filter((t) => t.type === "income" && t.date.startsWith(day))
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-  );
+    const incomePerDay = last7Days.map((day) =>
+      transactions
+        .filter((t) => t.type === "income" && t.date.startsWith(day))
+        .reduce((sum, t) => sum + Number(t.amount), 0)
+    );
 
-  const expensePerDay = last7Days.map((day) =>
-    transactions
-      .filter((t) => t.type === "expense" && t.date.startsWith(day))
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-  );
+    const expensePerDay = last7Days.map((day) =>
+      transactions
+        .filter((t) => t.type === "expense" && t.date.startsWith(day))
+        .reduce((sum, t) => sum + Number(t.amount), 0)
+    );
 
-  const lineData = {
-    labels: last7Days,
-    datasets: [
-      {
-        label: "Income",
-        data: incomePerDay,
-        borderColor: "#4ade80",
-        backgroundColor: "rgba(74, 222, 128, 0.2)",
-        tension: 0.4,
-      },
-      {
-        label: "Expenses",
-        data: expensePerDay,
-        borderColor: "#f87171",
-        backgroundColor: "rgba(248, 113, 113, 0.2)",
-        tension: 0.4,
-      },
-    ],
-  };
+    setLineData({
+      labels: last7Days,
+      datasets: [
+        {
+          label: "Income",
+          data: incomePerDay,
+          borderColor: "#4ade80",
+          backgroundColor: "rgba(74, 222, 128, 0.2)",
+          tension: 0.4,
+        },
+        {
+          label: "Expenses",
+          data: expensePerDay,
+          borderColor: "#f87171",
+          backgroundColor: "rgba(248, 113, 113, 0.2)",
+          tension: 0.4,
+        },
+      ],
+    });
+  }, [transactions]);
 
   return (
     <>
@@ -167,18 +200,17 @@ export default function Income() {
           <div className="flex items-center justify-center mt-6">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
               <div className="w-full flex items-center justify-between">
-                {/* Doughnut Chart */}
-                <div className="w-[300px] md:w-[400px] p-4 ">
-                  <Doughnut data={doughnutData} />
-                  <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
-                </div>
                 {/* Bar Chart */}
-                <div className="w-[400px] md:w-[800px] p-4">
-                  <Line data={lineData} />
+                <div className="w-[400px] md:w-[700px] p-4 ">
+                  <Bar data={barChartData} />
                   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Bar chart </p>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
+
+                {/* Line Chart */}
+                <div className="w-[400px] md:w-[700px] p-4">
+                  <Line data={lineData} />
+                  <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Line chart </p>
+                </div>
               </div>
               <p className="text-gray-600 text-[15px] text-center font-medium">Weekly Spending Trend</p>
             </div>
@@ -225,8 +257,28 @@ export default function Income() {
                   />
                 </div>
 
-                <button type="submit"
-                  className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l focus:outline-none focus:ring-2 focus:ring-blue-400 hover:ring-2 hover:shadow-current/30" >Add Income</button>
+                <div className="transactions-list">
+                  {transactions.filter((t) => t.type === "income").map((transaction) => (
+                    <div key={transaction.id} className="transaction-item">
+                      <div className="transaction-info">
+                        <p>Name: {transaction.inc_name}</p>
+                        <p>Amount: {transaction.amount}</p>
+                        <p>Date: {transaction.date}</p>
+                      </div>
+
+                      <button
+                        onClick={() => handleDelete(transaction.id)}
+                        className="delete-button"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button type="submit" className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l focus:outline-none focus:ring-2 focus:ring-blue-400 hover:ring-2 hover:shadow-current/30">
+                  Add Income
+                </button>
               </form>
             </div>
           </div>
