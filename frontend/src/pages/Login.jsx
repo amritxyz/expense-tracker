@@ -1,4 +1,5 @@
 // src/components/Login.jsx
+import { useEffect } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
@@ -15,6 +16,14 @@ export default function Login() {
     password: "",
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Redirect to dashboard if already logged in
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   const validationSchema = Yup.object({
     email: Yup.string()
       .email("Invalid email format")
@@ -28,8 +37,9 @@ export default function Login() {
     try {
       const result = await login(values.email, values.password);
       if (result.success) {
-        toast.success("Login successful!");
-        setTimeout(() => navigate('/dashboard'), 1500); // Automatically redirect after success
+        toast.loading("Loging in...!");
+        setTimeout(() => toast.success("Logged in successfully..."), 400);
+        setTimeout(() => navigate('/dashboard'), 1000);
       } else {
         toast.error(result.message);
       }

@@ -1,8 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Redirect to dashboard if already logged in
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   return (
     <>
       <Navbar />

@@ -13,6 +13,12 @@ export default function Recent() {
     try {
       const token = localStorage.getItem("token");
 
+      if (!token) {
+        toast.dismiss(loadingToast);
+        toast.error("No token found. Please log in.");
+        return; // Exit if there's no token
+      }
+
       const endPoint = type == "income" ? `http://localhost:5000/income/${id}` : `http://localhost:5000/expenses/${id}`;
 
       const response = await fetch(endPoint, {

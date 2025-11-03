@@ -1,4 +1,5 @@
 /* src/components/Signup.jsx (Updated) */
+import { useEffect } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,6 +10,14 @@ import "./login.css";
 const Signup = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Redirect to dashboard if already logged in
+      navigate('/dashboard');
+    }
+  }, [navigate]);
 
   const initialValues = {
     user: "",
@@ -34,8 +43,9 @@ const Signup = () => {
       const result = await register(values.user, values.email, values.password);
 
       if (result.success) {
-        toast.success("Registration successful!");
-        setTimeout(() => navigate('/login'), 1500); // Redirect to login after registration
+        toast.loading("Registering...!");
+        setTimeout(() => toast.success("Registration successfully."), 400);
+        setTimeout(() => navigate('/login'), 1000); // Redirect to login after registration
       } else {
         toast.error(result.message);
       }

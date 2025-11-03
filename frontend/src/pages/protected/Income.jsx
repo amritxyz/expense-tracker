@@ -23,8 +23,10 @@ export default function Income() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    toast.loading("Adding income");
 
     if (!inc_name || !amount || !date) {
+      toast.dismiss();
       toast.warn("Please Fill in all fields");
       return;
     }
@@ -44,6 +46,7 @@ export default function Income() {
 
       const data = await response.json();
       if (response.ok) {
+        toast.dismiss();
         toast.success("Income added successfully.");
         setInc_name("");
         setAmount("");
@@ -52,21 +55,21 @@ export default function Income() {
         const newIncome = { ...incomeData, type: "income", id: data.id };
         setTransactions((prevTransactions) => [newIncome, ...prevTransactions]);
       } else {
+        toast.dismiss();
         toast.error(data.message, "Failed to add income.");
       }
     } catch (err) {
+      toast.dismiss();
       toast.error("An error occurred while adding the income.");
     }
   }
 
-  async function handleDelete(id, type) {
-    toast.loading("Deleting expense...");
+  async function handleDelete(id) {
+    toast.loading("Deleting income...");
     try {
       const token = localStorage.getItem("token");
 
-      const endPoint = type == "income" ? `http://localhost:5000/income/${id}` : `http://localhost:5000/expenses/${id}`;
-
-      const response = await fetch(endPoint, {
+      const response = await fetch(`http://localhost:5000/income/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` },
       });
@@ -74,17 +77,18 @@ export default function Income() {
       const data = await response.json();
       if (response.ok) {
         toast.dismiss();
-        toast.success("Expense deleted successfully.");
+        toast.success("Income deleted successfully.");
         setTransactions((prevTransactions) =>
+          // Directly delete the income with the id
           prevTransactions.filter((transaction) => transaction.id !== id)
         );
       } else {
         toast.dismiss();
-        toast.error(data.message || "Failed to delete the expense.");
+        toast.error(data.message || "Failed to delete the income.");
       }
     } catch (err) {
       toast.dismiss();
-      toast.error("An error occurred while deleting the expense.");
+      toast.error("An error occurred while deleting the income.");
     }
   }
 

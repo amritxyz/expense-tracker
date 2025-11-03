@@ -232,7 +232,7 @@ export default function Expense() {
           <VerticalNavbar />
         </div>
 
-        <div className={`md:ml-64 h-screen bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`}`}>
+        <div className={`md:ml-64 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-full` : `h-full`} `}>
           <div className="flex items-center justify-center mt-6">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
               <div className="w-full flex items-center justify-between">
@@ -333,7 +333,7 @@ export default function Expense() {
           </div>
 
           <div className="w-full flex items-center justify-center">
-            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
+            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white mb-9">
               <p className="text-gray-900 font-semibold mb-3">Recent Expenses</p>
               <div className="space-y-3">
                 {transactions.filter((t) => t.type === "expense").map((item) => (
