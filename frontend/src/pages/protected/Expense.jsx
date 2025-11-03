@@ -232,7 +232,7 @@ export default function Expense() {
           <VerticalNavbar />
         </div>
 
-        <div className="md:ml-64 h-screen bg-blue-50 gap-y-6 flex flex-col">
+        <div className={`md:ml-64 h-screen bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`}`}>
           <div className="flex items-center justify-center mt-6">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
               <div className="w-full flex items-center justify-between">
@@ -321,27 +321,6 @@ export default function Expense() {
                   />
                 </div>
 
-                <div className="transactions-list">
-                  {transactions.filter((t) => t.type === "expense").map(transaction => (
-                    <div key={transaction.id} className="transaction-item">
-                      <div className="transaction-info">
-                        <p>Name: {transaction.exp_name}</p>
-                        <p>Category: {transaction.categories}</p>
-                        <p>Amount: {transaction.amount}</p>
-                        <p>Date: {transaction.date}</p>
-                      </div>
-
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => handleDelete(transaction.id)}
-                        className="delete-button"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
                 {/* Submit Button */}
                 <button
                   type="submit"
@@ -350,6 +329,47 @@ export default function Expense() {
                   Add Expense
                 </button>
               </form>
+            </div>
+          </div>
+
+          <div className="w-full flex items-center justify-center">
+            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
+              <p className="text-gray-900 font-semibold mb-3">Recent Expenses</p>
+              <div className="space-y-3">
+                {transactions.filter((t) => t.type === "expense").map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
+                  >
+                    {/* Left side: Name, Type, Date */}
+                    <div className="flex flex-col space-y-1">
+                      <p className="font-medium text-gray-900 capitalize">{item.inc_name || item.exp_name}</p>
+                      <p className="text-xs text-gray-500 capitalize">{item.type}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
+                    </div>
+
+                    {/* Right side: Amount */}
+                    <div className="flex items-center space-x-3">
+                      <span
+                        className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}
+                      >
+                        Rs. {item.amount}
+                      </span>
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="font-semibold text-red-600 hover:text-red-500 hover:shadow-md hover:bg-red-100 px-4 py-2 rounded-2xl transition-all"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <ToastContainer />

@@ -1,11 +1,41 @@
 import { useState, useEffect } from "react";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
+import { ToastContainer, toast } from "react-toastify";
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 export default function Recent() {
   const [transactions, setTransactions] = useState([]);
+
+  async function handleDelete(id, type) {
+    toast.loading("Deleting expense...");
+    try {
+      const token = localStorage.getItem("token");
+
+      const endPoint = type == "income" ? `http://localhost:5000/income/${id}` : `http://localhost:5000/expenses/${id}`;
+
+      const response = await fetch(endPoint, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.dismiss();
+        toast.success("Expense deleted successfully.");
+        setTransactions((prevTransactions) =>
+          prevTransactions.filter((transaction) => transaction.id !== id)
+        );
+      } else {
+        toast.dismiss();
+        toast.error(data.message || "Failed to delete the expense.");
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error("An error occurred while deleting the expense.");
+    }
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -195,28 +225,34 @@ export default function Recent() {
           {transactions.map((item) => (
             <div
               key={item.id}
-              className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"
-                }`}
+              className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
             >
-              <div>
-                <p className="font-medium text-gray-900 capitalize">
-                  {item.inc_name || item.exp_name}
-                </p>
+              {/* Left side: Name, Type, Date */}
+              <div className="flex flex-col space-y-1">
+                <p className="font-medium text-gray-900 capitalize">{item.inc_name || item.exp_name}</p>
                 <p className="text-xs text-gray-500 capitalize">{item.type}</p>
               </div>
 
               <div>
-                <p className="text-xs text-gray-900 capitalize">{item.date}</p>
+                <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
               </div>
 
-              <span
-                className={`font-semibold ${item.type === "income"
-                  ? "text-green-600"
-                  : "text-red-600"
-                  }`}
-              >
-                Rs. {item.amount}
-              </span>
+              {/* Right side: Amount */}
+              <div className="flex items-center space-x-3">
+                <span
+                  className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}
+                >
+                  Rs. {item.amount}
+                </span>
+
+                {/* Delete Button */}
+                <button
+                  onClick={() => handleDelete(item.id, item.type)}
+                  className="font-semibold text-red-600 hover:text-red-500 hover:shadow-md hover:bg-red-100 px-4 py-2 rounded-2xl transition-all"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
