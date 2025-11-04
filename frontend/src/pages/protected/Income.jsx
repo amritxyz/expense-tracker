@@ -14,6 +14,7 @@ export default function Income() {
   const [date, setDate] = useState("");
   const [transactions, setTransactions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
   const [barChartData, setBarChartData] = useState({
     labels: [],
     datasets: []
@@ -256,6 +257,43 @@ export default function Income() {
             </div>
           </div>
 
+          {/* Modal - Delete modal */}
+          {isDeleteModalOpen && (
+            transactions.filter((t) => t.categories == "income").map((item) => (
+              <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+
+                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                  <p className="text-xl font-medium mb-3">Delete</p>
+                  <hr className="text-current/50 my-5 shadow shadow-current/20" />
+
+                  <p className="text-xl font-xl mb-3">Are you sure?</p>
+                  <div className="flex justify-end gap-2">
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      onClick={() => {
+                        handleDelete(item.id);
+                        setIsDeleteModalOpen(false);
+                      }}
+                      className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 cursor-pointer"
+                    >
+                      Confirm
+                    </button>
+
+                    {/* Close Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+
           {/* Modal - Add Income Form */}
           {isModalOpen && (
             <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
@@ -324,7 +362,7 @@ export default function Income() {
                       {/* Submit Button */}
                       <button
                         type="submit"
-                        className="py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l"
+                        className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 cursor-pointer"
                       >
                         Add Income
                       </button>
@@ -333,7 +371,7 @@ export default function Income() {
                       <button
                         type="button"
                         onClick={() => setIsModalOpen(false)}
-                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-400"
+                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
                       >
                         Close
                       </button>
@@ -350,44 +388,59 @@ export default function Income() {
                 <p className="text-gray-900 font-semibold ">Recent Income</p>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-6 py-2 text-white bg-green-500 rounded-full shadow-lg hover:bg-blue-400 transition-all"
+                  className="px-6 py-2 text-white bg-blue-500 rounded-xl shadow-lg hover:bg-blue-600 transition-all cursor-pointer flex"
                 >
+                  <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z"></path>
+                  </svg>
                   Add Income
                 </button>
               </div>
 
               <hr className="text-current/20 my-3 shadow shadow-current/20" />
-              <div className="space-y-3 ">
-                {transactions.filter((t) => t.type === "income").map((item) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {transactions.filter((t) => t.categories == "income").map((item) => (
                   <div
                     key={item.id}
-                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
+                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
                   >
                     {/* Left side: Name, Type, Date */}
                     <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-gray-900 capitalize">{item.inc_source || item.exp_name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{item.type}</p>
+                      <p className="font-medium text-gray-900 capitalize">{item.inc_source}</p>
                     </div>
 
                     <div>
-                      <p className="text-[12px] text-gray-900 capitalize font-medium">{formatDate(item.date)}</p>
+                      <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
                     </div>
 
-                    {/* Right side: Amount */}
+                    {/* Right side: Amount and Delete Button */}
                     <div className="flex items-center space-x-3">
-                      <span
-                        className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}
+                      {/* Delete Button - Only visible on hover */}
+                      <button
+                        // onClick={() => handleDelete(item.id)}
+                        onClick={() => setIsDeleteModalOpen(true)}
+                        className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all"
                       >
+
+                        <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                            <path strokeDasharray={24} strokeDashoffset={24} d="M12 20h5c0.5 0 1 -0.5 1 -1v-14M12 20h-5c-0.5 0 -1 -0.5 -1 -1v-14">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="24;0"></animate>
+                            </path>
+                            <path strokeDasharray={20} strokeDashoffset={20} d="M4 5h16">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.2s" values="20;0"></animate>
+                            </path>
+                            <path strokeDasharray={8} strokeDashoffset={8} d="M10 4h4M10 9v7M14 9v7">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
+                            </path>
+                          </g>
+                        </svg>
+
+                      </button>
+
+                      <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
                         Rs. {item.amount}
                       </span>
-
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="font-semibold text-red-600 hover:text-red-500 hover:shadow-md hover:bg-red-100 px-4 py-2 rounded-2xl transition-all"
-                      >
-                        Delete
-                      </button>
                     </div>
                   </div>
                 ))}

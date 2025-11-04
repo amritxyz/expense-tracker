@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
 import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 export default function Recent() {
   const [transactions, setTransactions] = useState([]);
+  const navigate = useNavigate();
 
   async function handleDelete(id, type) {
     toast.loading("Deleting expense...");
@@ -225,39 +227,60 @@ export default function Recent() {
       </div>
 
       <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
-        <p className="text-gray-900 font-semibold mb-3">Recent Transactions</p>
 
-        <div className="space-y-3">
+        <div className="flex items-center justify-between text-center">
+          <p className="text-gray-900 font-semibold ">Recent Transactions</p>
+          <button
+            onClick={() => navigate("/dashboard/expense")}
+            className="px-6 py-2 text-white bg-blue-500 rounded-xl shadow-lg hover:bg-blue-400 transition-all"
+          >
+            See More
+          </button>
+        </div>
+
+        <hr className="text-current/20 my-3 shadow shadow-current/20" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {transactions.map((item) => (
             <div
               key={item.id}
-              className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
+              className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
             >
               {/* Left side: Name, Type, Date */}
               <div className="flex flex-col space-y-1">
-                <p className="font-medium text-gray-900 capitalize">{item.inc_source || item.exp_name}</p>
-                <p className="text-xs text-gray-500 capitalize">{item.type}</p>
+                <p className="font-medium text-gray-900 capitalize">{item.categories}</p>
               </div>
 
               <div>
                 <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
               </div>
 
-              {/* Right side: Amount */}
+              {/* Right side: Amount and Delete Button */}
               <div className="flex items-center space-x-3">
-                <span
-                  className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}
-                >
-                  Rs. {item.amount}
-                </span>
-
-                {/* Delete Button */}
+                {/* Delete Button - Only visible on hover */}
                 <button
                   onClick={() => handleDelete(item.id, item.type)}
-                  className="font-semibold text-red-600 hover:text-red-500 hover:shadow-md hover:bg-red-100 px-4 py-2 rounded-2xl transition-all"
+                  className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all"
                 >
-                  Delete
+
+                  <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                    <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                      <path strokeDasharray={24} strokeDashoffset={24} d="M12 20h5c0.5 0 1 -0.5 1 -1v-14M12 20h-5c-0.5 0 -1 -0.5 -1 -1v-14">
+                        <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="24;0"></animate>
+                      </path>
+                      <path strokeDasharray={20} strokeDashoffset={20} d="M4 5h16">
+                        <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.2s" values="20;0"></animate>
+                      </path>
+                      <path strokeDasharray={8} strokeDashoffset={8} d="M10 4h4M10 9v7M14 9v7">
+                        <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
+                      </path>
+                    </g>
+                  </svg>
+
                 </button>
+
+                <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
+                  Rs. {item.amount}
+                </span>
               </div>
             </div>
           ))}

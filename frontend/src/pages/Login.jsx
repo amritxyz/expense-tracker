@@ -55,18 +55,18 @@ export default function Login() {
       <div className="bg-blue-50 h-screen flex items-center justify-center">
         <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
           {/* Logo Section */}
-          <div className="flex gap-1.5 items-center justify-center my-5">
+          <button onClick={() => navigate("/")} className="flex gap-1.5 items-center justify-center my-5">
             <div className='rounded-full h-8 w-8 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500'>
               <span className='text-white font-bold text-sm'>ExT</span>
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
               ExpenseTracker
             </span>
-          </div>
+          </button>
 
           {/* Login Header */}
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Log in</h2>
-          <p className="text-gray-600 text-sm mb-6 text-center">Continue to Expense Tracker</p>
+          <h2 className="text-2xl font-bold text-gray-800 ">Log in</h2>
+          <p className="text-gray-600 text-sm mb-6 ">Continue to Expense Tracker</p>
 
           <Formik
             initialValues={initialValues}

@@ -11,7 +11,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 
 export default function Expense() {
   /* INFO: useStates */
-  const [exp_name, setExp_name] = useState("");
+  const [description, setDescription] = useState("");
   const [categories, setCategories] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
@@ -31,18 +31,19 @@ export default function Expense() {
   const today = new Date().toISOString().split('T')[0];
   // Formik
   const initialValues = {
-    exp_name: '',
     amount: '',
     categories: '',
+    description: '',
     date: ''
   };
 
   const validationSchema = Yup.object({
-    exp_name: Yup.string()
-      .matches(/[a-zA-Z]/, 'Expense name must include at least one letter')
-      .required('Expense is required'),
     amount: Yup.number().required('Amount is required').positive('Amount must be positive').integer('Amount must be an integer'),
     categories: Yup.string().required("Category is required"),
+    description: Yup.string()
+      .matches(/[a-zA-Z]/, 'Description must include at least one letter')
+      .max(25, "Max 25 characters only")
+      .required('Description is required'),
     date: Yup.date()
       .max(today, `Date cannot be in the future`)
       .required('Date is required')
@@ -50,19 +51,19 @@ export default function Expense() {
 
   async function handleSubmit(values) {
     toast.loading("Adding Expense...");
-    const { exp_name, categories, amount, date } = values;
+    const { amount, categories, description, date } = values;
 
     /* Make sure form is filled */
-    if (!exp_name || !categories || !amount || !date) {
+    if (!amount || !categories || !description || !date) {
       toast.dismiss();
       toast.warn("Please Fill in all fields")
       return;
     }
 
     const expenseData = {
-      exp_name,
-      categories,
       amount: parseFloat(amount),
+      categories,
+      description,
       date
     };
 
@@ -178,11 +179,11 @@ export default function Expense() {
     const expenseName = transactions
       .filter((t) => t.type === "expense")
       .map((t) => ({
-        name: t.categories,
+        categories: t.categories,
         amount: Number(t.amount)
       }));
 
-    const allExpenseName = expenseName.map((e) => e.name);
+    const allExpenseName = expenseName.map((e) => e.categories);
     const allExpenseAmount = expenseName.map((e) => e.amount);
 
     const expenseColors = allExpenseName.map((name) => categoryColors[name] || "#cccccc");
@@ -249,15 +250,6 @@ export default function Expense() {
     });
   }, [transactions]);
 
-  // function AddCard() {
-  //   return (
-  //     <div className="border-[2px] rounded-xl border-current/20  h-[12rem] w-[16rem] bg-current/10">
-  //       <div className="text-[4rem] text-current/50 text-center flex items-center justify-center h-full w-full">
-  //         <span>+</span>
-  //       </div>
-  //     </div>
-  //   );
-  // }
   return (
     <>
       <div className="bg-blue-50">
@@ -265,7 +257,7 @@ export default function Expense() {
           <VerticalNavbar />
         </div>
 
-        <div className={`md:ml-64 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-full` : `h-full`} `}>
+        <div className={`md:ml-64 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`} `}>
           <div className="flex items-center justify-center mt-6">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
               <div className="w-full flex items-center justify-between">
@@ -299,23 +291,6 @@ export default function Expense() {
                   onSubmit={handleSubmit}
                 >
                   <Form>
-                    {/* name */}
-                    <div className="mb-4">
-                      <label htmlFor="exp_name" className="block text-sm font-medium text-gray-700">Expense Name<span className="text-red-400">*</span></label>
-                      <Field
-                        type="text"
-                        id="exp_name"
-                        name="exp_name"
-                        placeholder="Freelancing, Salary, etc"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <ErrorMessage
-                        name="exp_name"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
                     {/* Amount */}
                     <div className="mb-6">
                       <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount<span className="text-red-400">*</span></label>
@@ -335,7 +310,7 @@ export default function Expense() {
 
                     {/* categories */}
                     <div className="mb-4">
-                      <label htmlFor="categories" className="block text-sm font-medium text-gray-700">Income Source<span className="text-red-400">*</span></label>
+                      <label htmlFor="categories" className="block text-sm font-medium text-gray-700">Expense Category<span className="text-red-400">*</span></label>
                       <Field
                         as="select"
                         id="categories"
@@ -358,6 +333,24 @@ export default function Expense() {
                       />
                     </div>
 
+                    {/* name */}
+                    <div className="mb-4">
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description<span className="text-red-400">*</span></label>
+                      <Field
+                        type="text"
+                        id="description"
+                        name="description"
+                        placeholder="Remark"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <ErrorMessage
+                        name="description"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+
+
                     {/* Date */}
                     <div className="mb-6">
                       <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date<span className="text-red-400">*</span></label>
@@ -379,7 +372,7 @@ export default function Expense() {
                       {/* Submit Button */}
                       <button
                         type="submit"
-                        className="py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l"
+                        className="py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md cursor-pointer"
                       >
                         Add Expense
                       </button>
@@ -388,7 +381,7 @@ export default function Expense() {
                       <button
                         type="button"
                         onClick={() => setIsModalOpen(false)}
-                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-400"
+                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
                       >
                         Close
                       </button>
@@ -404,52 +397,66 @@ export default function Expense() {
               <div className="flex items-center justify-between text-center">
                 <p className="text-gray-900 font-semibold ">Recent Expenses</p>
 
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-6 py-2 text-white bg-blue-500 rounded-full shadow-lg hover:bg-blue-400 transition-all"
+                <button onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 text-white bg-blue-500 rounded-xl shadow-lg hover:bg-blue-600 transition-all cursor-pointer flex"
                 >
+                  <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z"></path>
+                  </svg>
                   Add Expense
                 </button>
               </div>
               <hr className="text-current/20 my-3 shadow shadow-current/20" />
 
-              <div className="space-y-3 ">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {transactions.filter((t) => t.type === "expense").map((item) => (
                   <div
                     key={item.id}
-                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
+                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
                   >
                     {/* Left side: Name, Type, Date */}
                     <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-gray-900 capitalize">{item.inc_source || item.exp_name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{item.type}</p>
+                      <p className="font-medium text-gray-900 capitalize">{item.categories}</p>
                     </div>
 
                     <div>
                       <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
                     </div>
 
-                    {/* Right side: Amount */}
+                    {/* Right side: Amount and Delete Button */}
                     <div className="flex items-center space-x-3">
-                      <span
-                        className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}
-                      >
-                        Rs. {item.amount}
-                      </span>
-
-                      {/* Delete Button */}
+                      {/* Delete Button - Only visible on hover */}
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="font-semibold text-red-600 hover:text-red-500 hover:shadow-md hover:bg-red-100 px-4 py-2 rounded-2xl transition-all"
+                        className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
                       >
-                        Delete
+
+                        <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                            <path strokeDasharray={24} strokeDashoffset={24} d="M12 20h5c0.5 0 1 -0.5 1 -1v-14M12 20h-5c-0.5 0 -1 -0.5 -1 -1v-14">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="24;0"></animate>
+                            </path>
+                            <path strokeDasharray={20} strokeDashoffset={20} d="M4 5h16">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.2s" values="20;0"></animate>
+                            </path>
+                            <path strokeDasharray={8} strokeDashoffset={8} d="M10 4h4M10 9v7M14 9v7">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
+                            </path>
+                          </g>
+                        </svg>
+
                       </button>
+
+                      <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
+                        Rs. {item.amount}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+
           <ToastContainer />
         </div>
       </div>

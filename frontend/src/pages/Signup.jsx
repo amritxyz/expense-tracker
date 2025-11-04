@@ -61,7 +61,7 @@ const Signup = () => {
       <div className="bg-blue-50 h-screen flex items-center justify-center">
         <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
           {/* Logo Section */}
-          <div className="flex gap-1.5 items-center justify-center my-5">
+          <Link className="flex gap-1.5 items-center my-5">
             <div className='rounded-full h-8 w-8 flex items-center justify-center
              bg-gradient-to-r from-blue-500 to-purple-500'>
               <span className='text-white font-bold text-sm'>ExT</span>
@@ -69,11 +69,11 @@ const Signup = () => {
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
               ExpenseTracker
             </span>
-          </div>
+          </Link>
 
           {/* Signup Header */}
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Sign Up</h2>
-          <p className="text-gray-600 text-sm mb-6 text-center">Create an account to get started</p>
+          <h2 className="text-2xl font-bold text-gray-800 ">Sign Up</h2>
+          <p className="text-gray-600 text-sm mb-6 ">Create an account to get started</p>
 
           <Formik
             initialValues={initialValues}
