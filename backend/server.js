@@ -158,15 +158,15 @@ app.delete('/expenses/:id', authenticateJWT, (req, res) => {
 });
 
 app.post('/income', authenticateJWT, (req, res) => {
-  const { inc_name, amount, date } = req.body;
+  const { inc_source, amount, date } = req.body;
   const user_id = req.user.id;
 
-  if (!inc_name || !amount || !date) {
+  if (!inc_source || !amount || !date) {
     return res.status(400).json({ message: "Categories, Amount and Date are required" });
   }
 
   try {
-    insert_income(user_id, inc_name, amount, date);
+    insert_income(user_id, inc_source, amount, date);
     res.status(200).json({ message: 'Inserted expense successfully' });
   } catch (err) {
     console.error("Error during insertion of expenses", err);

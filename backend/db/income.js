@@ -17,7 +17,7 @@ const income_table = 'income';
 const income_attributes = `
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
-  inc_name TEXT NOT NULL,
+  inc_source TEXT NOT NULL,
   categories TEXT DEFAULT 'income',
   amount INTEGER NOT NULL,
   date   DATETIME,
@@ -45,13 +45,13 @@ function create_income_table() {
 /*
  * INFO: Function to insert a income
  */
-function insert_income(user_id, inc_name, amount, date) {
+function insert_income(user_id, inc_source, amount, date) {
   const sql = `
-    INSERT INTO ${income_table} (user_id, inc_name, amount, date)
+    INSERT INTO ${income_table} (user_id, inc_source, amount, date)
     VALUES (?, ?, ?, ?)
   `;
   try {
-    const result = db.prepare(sql).run(user_id, inc_name, amount, date);
+    const result = db.prepare(sql).run(user_id, inc_source, amount, date);
     console.log(`[✓] Inserted income with ID: ${result.lastInsertRowid}`);
   } catch (err) {
     console.error(`[x] Failed to insert income: `, err.message);
