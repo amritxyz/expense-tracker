@@ -22,7 +22,7 @@ const userid_attr = 'user_id';
 const expense_attributes = `
   ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
   ${userid_attr} INTEGER NOT NULL,
-  exp_name TEXT NOT NULL,
+  description TEXT NOT NULL,
   ${second_attr}  TEXT NOT NULL,
   ${third_attr}  INTEGER NOT NULL,
   ${extra_attr}   DATETIME,
@@ -78,13 +78,13 @@ function create_expense_table() {
 /*
  * INFO: Function to insert a expense
  */
-function insert_expense(user_id, exp_name, categories, amount, date) {
+function insert_expense(user_id, amount, categories, description, date) {
   const sql = `
-    INSERT INTO ${expense_table} (user_id, exp_name,  ${second_attr}, ${third_attr}, ${extra_attr})
+    INSERT INTO ${expense_table} (user_id, amount, categories, description, date)
     VALUES (?, ?, ?, ?, ?)
   `;
   try {
-    const result = db.prepare(sql).run(user_id, exp_name, categories, amount, date);
+    const result = db.prepare(sql).run(user_id, amount, categories, description, date);
     console.log(`[✓] Inserted expense with ID: ${result.lastInsertRowid}`);
   } catch (err) {
     console.error(`[x] Failed to insert expense: `, err.message);

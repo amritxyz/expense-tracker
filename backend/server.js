@@ -110,15 +110,15 @@ const authenticateJWT = (req, res, next) => {
 
 /* POST /expense - Create an expense (Protected route) */
 app.post('/expense', authenticateJWT, (req, res) => {
-  const { exp_name, categories, amount, date } = req.body;
+  const { amount, categories, description, date } = req.body;
   const user_id = req.user.id;
 
-  if (!exp_name || !categories || !amount || !date) {
+  if (!amount || !categories || !description || !date) {
     return res.status(400).json({ message: "Categories, Amount and Date are required" });
   }
 
   try {
-    insert_expense(user_id, exp_name, categories, amount, date);
+    insert_expense(user_id, amount, categories, description, date);
     res.status(200).json({ message: 'Inserted expense successfully' });
   } catch (err) {
     console.error("Error during insertion of expenses", err);
