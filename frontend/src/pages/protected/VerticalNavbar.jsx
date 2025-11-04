@@ -42,7 +42,7 @@ export default function VerticalNavbar() {
         </div>
         <button
           onClick={() => {
-            logout;
+            logout();
             navigate("/login");
           }}
           className={`text-lg  text-center bg-red-100 hover:bg-current/5 px-4 py-2 mb-6 rounded-lg transition duration-200 cursor-pointer`}

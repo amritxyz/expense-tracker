@@ -16,6 +16,7 @@ export default function Expense() {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
   const [doughnutData, setDoughnutData] = useState({
     labels: [],
@@ -278,6 +279,42 @@ export default function Expense() {
             </div>
           </div>
 
+          {isDeleteModalOpen && (
+            transactions.filter((t) => t.type == "expense").map((item) => (
+              <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+
+                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                  <p className="text-xl font-medium mb-3">Delete</p>
+                  <hr className="text-current/50 my-5 shadow shadow-current/20" />
+
+                  <p className="text-xl font-xl mb-3">Are you sure?</p>
+                  <div className="flex justify-end gap-2">
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      onClick={() => {
+                        handleDelete(item.id);
+                        setIsDeleteModalOpen(false);
+                      }}
+                      className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 cursor-pointer"
+                    >
+                      Confirm
+                    </button>
+
+                    {/* Close Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+
           {/* Modal - Add Expense Form */}
           {isModalOpen && (
             <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
@@ -427,8 +464,8 @@ export default function Expense() {
                     <div className="flex items-center space-x-3">
                       {/* Delete Button - Only visible on hover */}
                       <button
-                        onClick={() => handleDelete(item.id)}
-                        className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
+                        onClick={() => setIsDeleteModalOpen(true)}
+                        className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
                       >
 
                         <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
