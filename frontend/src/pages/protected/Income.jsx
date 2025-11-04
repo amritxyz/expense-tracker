@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import VerticalNavbar from "./VerticalNavbar";
 import { ToastContainer, toast } from "react-toastify";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
 import { Bar, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
 export default function Income() {
-  const [inc_name, setInc_name] = useState("");
+  const [inc_source, setInc_source] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [transactions, setTransactions] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
   const [barChartData, setBarChartData] = useState({
     labels: [],
     datasets: []
@@ -21,17 +24,42 @@ export default function Income() {
     datasets: []
   });
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    toast.loading("Adding income");
+  const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
 
-    if (!inc_name || !amount || !date) {
+  // Formik
+  const initialValues = {
+    inc_source: '',
+    amount: '',
+    date: ''
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+  const formatDate = (date) => {
+    const d = new Date(date);
+    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  };
+
+  const validationSchema = Yup.object({
+    inc_source: Yup.string()
+      .matches(/[a-zA-Z]/, 'Income source must include at least one letter')
+      .required('Income source is required'),
+    amount: Yup.number().required('Amount is required').positive('Amount must be positive').integer('Amount must be an integer'),
+    date: Yup.date()
+      .max(today, `Date cannot be in the future`)
+      .required('Date is required')
+  });
+
+  async function handleSubmit(values) {
+    toast.loading("Adding income");
+    const { inc_source, amount, date } = values;
+
+    if (!inc_source || !amount || !date) {
       toast.dismiss();
       toast.warn("Please Fill in all fields");
       return;
     }
 
-    const incomeData = { inc_name, amount: parseFloat(amount), date };
+    const incomeData = { inc_source, amount: parseFloat(amount), date };
 
     try {
       const token = localStorage.getItem("token");
@@ -46,14 +74,18 @@ export default function Income() {
 
       const data = await response.json();
       if (response.ok) {
+        setIsModalOpen(false);
         toast.dismiss();
         toast.success("Income added successfully.");
-        setInc_name("");
+        setInc_source("");
         setAmount("");
         setDate("");
 
         const newIncome = { ...incomeData, type: "income", id: data.id };
         setTransactions((prevTransactions) => [newIncome, ...prevTransactions]);
+
+        // Force re-render of charts and table
+        setRefreshKey((prevKey) => prevKey + 1); // Change the key to trigger re-render
       } else {
         toast.dismiss();
         toast.error(data.message, "Failed to add income.");
@@ -79,9 +111,11 @@ export default function Income() {
         toast.dismiss();
         toast.success("Income deleted successfully.");
         setTransactions((prevTransactions) =>
-          // Directly delete the income with the id
           prevTransactions.filter((transaction) => transaction.id !== id)
         );
+
+        // Force re-render after deleting
+        setRefreshKey((prevKey) => prevKey + 1); // Change the key to trigger re-render
       } else {
         toast.dismiss();
         toast.error(data.message || "Failed to delete the income.");
@@ -118,7 +152,7 @@ export default function Income() {
         setTransactions(all);
       })
       .catch((err) => console.error("Error fetching transactions:", err));
-  }, []);
+  }, [refreshKey]); // Re-fetch data when `refreshKey` changes
 
   useEffect(() => {
     if (transactions.length > 0) {
@@ -126,11 +160,11 @@ export default function Income() {
       const incomeData = transactions
         .filter((t) => t.type === "income")
         .map((t) => ({
-          name: t.inc_name,
+          inc_source: t.inc_source,
           amount: Number(t.amount),
         }));
 
-      const allIncomeNames = incomeData.map((e) => e.name);
+      const allIncomeNames = incomeData.map((e) => e.inc_source);
       const allIncomeAmounts = incomeData.map((e) => e.amount);
 
       setBarChartData({
@@ -222,71 +256,121 @@ export default function Income() {
             </div>
           </div>
 
-          <div className="w-full flex items-center justify-center">
-            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
-              <p className="text-xl font-medium my-3">Add Income</p>
-              <hr className="text-current/50 my-5 shadow shadow-current/20" />
+          {/* Modal - Add Income Form */}
+          {isModalOpen && (
+            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <p className="text-xl font-medium mb-3">Add Income</p>
+                <hr className="text-current/50 my-5 shadow shadow-current/20" />
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <label htmlFor="inc_name" className="block text-xl font-medium text-gray-700 w-1/8">Name<span className="text-red-400">*</span></label>
-                  <input
-                    type="text"
-                    id="inc_name"
-                    value={inc_name}
-                    placeholder="Enter name"
-                    onChange={(e) => setInc_name(e.target.value)}
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                <Formik
+                  initialValues={initialValues}
+                  validationSchema={validationSchema}
+                  onSubmit={handleSubmit}
+                >
+                  <Form>
+                    {/* Income Source */}
+                    <div className="mb-4">
+                      <label htmlFor="inc_source" className="block text-sm font-medium text-gray-700">Income Source<span className="text-red-400">*</span></label>
+                      <Field
+                        type="text"
+                        id="inc_source"
+                        name="inc_source"
+                        placeholder="Freelancing, Salary, etc"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <ErrorMessage
+                        name="inc_source"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
 
-                <div className="flex items-center space-x-4">
-                  <label htmlFor="amount" className="block text-xl font-medium text-gray-700 w-1/8">Amount<span className="text-red-400">*</span></label>
-                  <input
-                    type="number"
-                    id="amount"
-                    value={amount}
-                    placeholder="Enter amount"
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                    {/* Amount */}
+                    <div className="mb-6">
+                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount<span className="text-red-400">*</span></label>
+                      <Field
+                        type="number"
+                        id="amount"
+                        name="amount"
+                        placeholder="Enter amount"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <ErrorMessage
+                        name="amount"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
 
-                <div className="flex items-center space-x-4">
-                  <label htmlFor="date" className="block text-xl font-medium text-gray-700 w-1/8">Date<span className="text-red-400">*</span></label>
-                  <input
-                    type="date"
-                    id="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                    {/* Date */}
+                    <div className="mb-6">
+                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date<span className="text-red-400">*</span></label>
+                      <Field
+                        type="date"
+                        id="date"
+                        name="date"
+                        placeholder="Enter date"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <ErrorMessage
+                        name="date"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
 
-                <button type="submit" className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l focus:outline-none focus:ring-2 focus:ring-blue-400 hover:ring-2 hover:shadow-current/30">
-                  Add Income
-                </button>
-              </form>
+                    <div className="flex justify-end gap-2">
+                      {/* Submit Button */}
+                      <button
+                        type="submit"
+                        className="py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l"
+                      >
+                        Add Income
+                      </button>
+
+                      {/* Close Button */}
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-400"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </Form>
+                </Formik>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="w-full flex items-center justify-center ">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
-              <p className="text-gray-900 font-semibold mb-3">Recent Income</p>
-              <div className="space-y-3">
+              <div className="flex items-center justify-between text-center">
+                <p className="text-gray-900 font-semibold ">Recent Income</p>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-6 py-2 text-white bg-green-500 rounded-full shadow-lg hover:bg-blue-400 transition-all"
+                >
+                  Add Income
+                </button>
+              </div>
+
+              <hr className="text-current/20 my-3 shadow shadow-current/20" />
+              <div className="space-y-3 ">
                 {transactions.filter((t) => t.type === "income").map((item) => (
                   <div
                     key={item.id}
-                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
+                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
                   >
                     {/* Left side: Name, Type, Date */}
                     <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-gray-900 capitalize">{item.inc_name || item.exp_name}</p>
+                      <p className="font-medium text-gray-900 capitalize">{item.inc_source || item.exp_name}</p>
                       <p className="text-xs text-gray-500 capitalize">{item.type}</p>
                     </div>
 
                     <div>
-                      <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
+                      <p className="text-[12px] text-gray-900 capitalize font-medium">{formatDate(item.date)}</p>
                     </div>
 
                     {/* Right side: Amount */}

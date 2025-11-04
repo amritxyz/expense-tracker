@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import VerticalNavbar from "./VerticalNavbar";
 import { ToastContainer, toast } from "react-toastify";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
 
 import { Doughnut, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
@@ -13,6 +15,8 @@ export default function Expense() {
   const [categories, setCategories] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
+  const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
   const [doughnutData, setDoughnutData] = useState({
     labels: [],
     datasets: []
@@ -23,11 +27,34 @@ export default function Expense() {
     datasets: []
   });
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+
+  const today = new Date().toISOString().split('T')[0];
+  // Formik
+  const initialValues = {
+    exp_name: '',
+    amount: '',
+    categories: '',
+    date: ''
+  };
+
+  const validationSchema = Yup.object({
+    exp_name: Yup.string()
+      .matches(/[a-zA-Z]/, 'Expense name must include at least one letter')
+      .required('Expense is required'),
+    amount: Yup.number().required('Amount is required').positive('Amount must be positive').integer('Amount must be an integer'),
+    categories: Yup.string().required("Category is required"),
+    date: Yup.date()
+      .max(today, `Date cannot be in the future`)
+      .required('Date is required')
+  });
+
+  async function handleSubmit(values) {
+    toast.loading("Adding Expense...");
+    const { exp_name, categories, amount, date } = values;
 
     /* Make sure form is filled */
     if (!exp_name || !categories || !amount || !date) {
+      toast.dismiss();
       toast.warn("Please Fill in all fields")
       return;
     }
@@ -52,19 +79,23 @@ export default function Expense() {
 
       const data = await response.json();
       if (response.ok) {
+        setIsModalOpen(false);
+        toast.dismiss();
         toast.success("Expense added successfully.");
-        setExp_name("");
-        setCategories("");
-        setAmount("");
-        setDate("");
+        // setExp_name("");
+        // setCategories("");
+        // setAmount("");
+        // setDate("");
         // Add the new expense to the state and refresh chart
         const newExpense = { ...expenseData, type: "expense", id: data.id }; // Assuming the response has the new expense ID
         setTransactions(prevTransactions => [newExpense, ...prevTransactions]);
       } else {
+        toast.dismiss();
         toast.error(data.message, "Failed to add expenses.");
       }
 
     } catch (err) {
+      toast.dismiss();
       console.log("Error adding expenses.", err);
       toast.error("An error occurred while adding the expenses.");
     }
@@ -88,6 +119,8 @@ export default function Expense() {
         toast.dismiss();
         toast.success("Expense deleted successfully.");
         setTransactions(transactions.filter(transaction => transaction.id !== id));
+        // Force re-render after deleting
+        setRefreshKey((prevKey) => prevKey + 1); // Change the key to trigger re-render
       } else {
         toast.dismiss();
         toast.error(data.message || "Failed to delete the expense.");
@@ -138,7 +171,7 @@ export default function Expense() {
         setTransactions(all);
       })
       .catch((err) => console.error("Error fetching transactions:", err));
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     // Get the expense data
@@ -253,97 +286,142 @@ export default function Expense() {
             </div>
           </div>
 
-          <div className="w-full flex items-center justify-center">
-            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
-              <p className="text-xl font-medium my-3">Add new Expense</p>
-              <hr className="text-current/50 my-5 shadow shadow-current/20" />
+          {/* Modal - Add Expense Form */}
+          {isModalOpen && (
+            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <p className="text-xl font-medium mb-3">Add Expense</p>
+                <hr className="text-current/50 my-5 shadow shadow-current/20" />
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Name Field */}
-                <div className="flex items-center space-x-4">
-                  <label htmlFor="exp_name" className="block text-xl font-medium text-gray-700 w-1/8">Name<span className="text-red-400">*</span></label>
-                  <input
-                    type="text"
-                    id="exp_name"
-                    value={exp_name}
-                    placeholder="Enter name"
-                    onChange={(e) => setExp_name(e.target.value)}
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Category Field */}
-                <div className="flex items-center space-x-4">
-                  <label htmlFor="categories" className="block text-xl font-medium text-gray-700 w-1/8">
-                    Category <span className="text-red-400">*</span>
-                  </label>
-
-                  {/* Dropdown for Category */}
-                  <select
-                    id="categories"
-                    value={categories}
-                    onChange={(e) => setCategories(e.target.value)}
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="" disabled>Select a category</option>
-                    <option value="Food">Food</option>
-                    <option value="Transportation">Transportation</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Utilities">Utilities</option>
-                    <option value="Shopping">Shopping</option>
-                    <option value="Rent">Rent</option>
-                    <option value="Others">Others</option>
-                  </select>
-                </div>
-
-                {/* Amount Field */}
-                <div className="flex items-center space-x-4">
-                  <label htmlFor="amount" className="block text-xl font-medium text-gray-700 w-1/8">Amount<span className="text-red-400">*</span></label>
-                  <input
-                    type="number"
-                    id="amount"
-                    value={amount}
-                    placeholder="Enter amount"
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Date Field */}
-                <div className="flex items-center space-x-4">
-                  <label htmlFor="date" className="block text-xl font-medium text-gray-700 w-1/8">Date<span className="text-red-400">*</span></label>
-                  <input
-                    type="date"
-                    id="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l focus:outline-none focus:ring-2 focus:ring-blue-400"
+                <Formik
+                  initialValues={initialValues}
+                  validationSchema={validationSchema}
+                  onSubmit={handleSubmit}
                 >
-                  Add Expense
-                </button>
-              </form>
+                  <Form>
+                    {/* name */}
+                    <div className="mb-4">
+                      <label htmlFor="exp_name" className="block text-sm font-medium text-gray-700">Expense Name<span className="text-red-400">*</span></label>
+                      <Field
+                        type="text"
+                        id="exp_name"
+                        name="exp_name"
+                        placeholder="Freelancing, Salary, etc"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <ErrorMessage
+                        name="exp_name"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+
+                    {/* Amount */}
+                    <div className="mb-6">
+                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount<span className="text-red-400">*</span></label>
+                      <Field
+                        type="number"
+                        id="amount"
+                        name="amount"
+                        placeholder="Enter amount"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <ErrorMessage
+                        name="amount"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+
+                    {/* categories */}
+                    <div className="mb-4">
+                      <label htmlFor="categories" className="block text-sm font-medium text-gray-700">Income Source<span className="text-red-400">*</span></label>
+                      <Field
+                        as="select"
+                        id="categories"
+                        name="categories"
+                        placeholder="Freelancing, Salary, etc"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="" disabled>Select a category</option>
+                        <option value="Food">Food</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Others">Others</option>
+                      </Field>
+                      <ErrorMessage
+                        name="categories"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+
+                    {/* Date */}
+                    <div className="mb-6">
+                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date<span className="text-red-400">*</span></label>
+                      <Field
+                        type="date"
+                        id="date"
+                        name="date"
+                        placeholder="Enter date"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <ErrorMessage
+                        name="date"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      {/* Submit Button */}
+                      <button
+                        type="submit"
+                        className="py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-gradient-to-l"
+                      >
+                        Add Expense
+                      </button>
+
+                      {/* Close Button */}
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(false)}
+                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-400"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </Form>
+                </Formik>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="w-full flex items-center justify-center">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white mb-9">
-              <p className="text-gray-900 font-semibold mb-3">Recent Expenses</p>
-              <div className="space-y-3">
+              <div className="flex items-center justify-between text-center">
+                <p className="text-gray-900 font-semibold ">Recent Expenses</p>
+
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-6 py-2 text-white bg-blue-500 rounded-full shadow-lg hover:bg-blue-400 transition-all"
+                >
+                  Add Expense
+                </button>
+              </div>
+              <hr className="text-current/20 my-3 shadow shadow-current/20" />
+
+              <div className="space-y-3 ">
                 {transactions.filter((t) => t.type === "expense").map((item) => (
                   <div
                     key={item.id}
-                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
+                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"}`}
                   >
                     {/* Left side: Name, Type, Date */}
                     <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-gray-900 capitalize">{item.inc_name || item.exp_name}</p>
+                      <p className="font-medium text-gray-900 capitalize">{item.inc_source || item.exp_name}</p>
                       <p className="text-xs text-gray-500 capitalize">{item.type}</p>
                     </div>
 

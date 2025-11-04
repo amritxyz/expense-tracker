@@ -6,3 +6,6 @@ react-toastify
 axios
 yup
 formik
+react-chartjs
+chart.js
+chartjs-plugin-datalabels

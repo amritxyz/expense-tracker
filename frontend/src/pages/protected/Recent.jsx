@@ -235,7 +235,7 @@ export default function Recent() {
             >
               {/* Left side: Name, Type, Date */}
               <div className="flex flex-col space-y-1">
-                <p className="font-medium text-gray-900 capitalize">{item.inc_name || item.exp_name}</p>
+                <p className="font-medium text-gray-900 capitalize">{item.inc_source || item.exp_name}</p>
                 <p className="text-xs text-gray-500 capitalize">{item.type}</p>
               </div>
 
