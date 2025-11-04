@@ -18,6 +18,7 @@ export default function Expense() {
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
+  const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
   const [doughnutData, setDoughnutData] = useState({
     labels: [],
     datasets: []
@@ -91,6 +92,8 @@ export default function Expense() {
         // Add the new expense to the state and refresh chart
         const newExpense = { ...expenseData, type: "expense", id: data.id }; // Assuming the response has the new expense ID
         setTransactions(prevTransactions => [newExpense, ...prevTransactions]);
+
+        setRefreshKey((prevKey) => prevKey + 1); // Change the key to trigger re-render
       } else {
         toast.dismiss();
         toast.error(data.message, "Failed to add expenses.");
@@ -279,8 +282,8 @@ export default function Expense() {
             </div>
           </div>
 
-          {isDeleteModalOpen && (
-            transactions.filter((t) => t.type == "expense").map((item) => (
+          {isDeleteModalOpen && selectedItemId && (
+            transactions.filter((t) => t.id === selectedItemId).map((item) => (
               <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
 
                 <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
@@ -389,14 +392,14 @@ export default function Expense() {
 
 
                     {/* Date */}
-                    <div className="mb-6">
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date<span className="text-red-400">*</span></label>
+                    <div className="mb-6 cursor-pointer">
+                      <label htmlFor="date" className="block text-sm font-medium text-gray-700 cursor-pointer">Date<span className="text-red-400">*</span></label>
                       <Field
                         type="date"
                         id="date"
                         name="date"
                         placeholder="Enter date"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                       />
                       <ErrorMessage
                         name="date"
@@ -464,7 +467,7 @@ export default function Expense() {
                     <div className="flex items-center space-x-3">
                       {/* Delete Button - Only visible on hover */}
                       <button
-                        onClick={() => setIsDeleteModalOpen(true)}
+                        onClick={() => { setSelectedItemId(item.id); setIsDeleteModalOpen(true); }}
                         className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
                       >
 

@@ -15,6 +15,7 @@ export default function Income() {
   const [transactions, setTransactions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
+  const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
   const [barChartData, setBarChartData] = useState({
     labels: [],
     datasets: []
@@ -174,7 +175,7 @@ export default function Income() {
           {
             label: "Income Amount",
             data: allIncomeAmounts,
-            backgroundColor: "#4caf50", // Green color for the bars
+            backgroundColor: "#4ade80", // Green color for the bars
             borderColor: "#388e3c",     // Darker green for borders
             borderWidth: 1,
           },
@@ -259,8 +260,8 @@ export default function Income() {
 
           {/* Modal - Delete modal */}
           {isDeleteModalOpen && (
-            transactions.filter((t) => t.categories == "income").map((item) => (
-              <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+            transactions.filter((t) => t.id === selectedItemId).map((item) => (
+              <div className="fixed inset-0 flex justify-center items-center bg-current/20 bg-opacity-50 z-50">
 
                 <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                   <p className="text-xl font-medium mb-3">Delete</p>
@@ -342,7 +343,7 @@ export default function Income() {
                     </div>
 
                     {/* Date */}
-                    <div className="mb-6">
+                    <div className="mb-6 cursor-pointer">
                       <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date<span className="text-red-400">*</span></label>
                       <Field
                         type="date"
@@ -418,7 +419,10 @@ export default function Income() {
                       {/* Delete Button - Only visible on hover */}
                       <button
                         // onClick={() => handleDelete(item.id)}
-                        onClick={() => setIsDeleteModalOpen(true)}
+                        onClick={() => {
+                          setSelectedItemId(item.id); // Set the selected transaction ID
+                          setIsDeleteModalOpen(true);  // Open the delete modal
+                        }}
                         className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
                       >
 
