@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import VerticalNavbar from "./VerticalNavbar";
 import { ToastContainer, toast } from "react-toastify";
-import { Formik, Form, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
+import { useNavigate } from "react-router-dom";
 
 // Button components
 import DeleteButton from "../../components/buttons/DeleteButton";
@@ -12,6 +11,7 @@ import DeleteModal from "../../components/modals/DeleteModal"
 
 // Warning
 import Warning from "../../components/warning/Warning";
+import WarningModal from "../../components/modals/WarningModal";
 
 import { Doughnut, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
@@ -30,6 +30,10 @@ export default function Expense() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
+  const [isWarningOpen, setIsWarningOpen] = useState(false);
+
+  const navigate = useNavigate();
+
   const [doughnutData, setDoughnutData] = useState({
     labels: [],
     datasets: []
@@ -40,27 +44,7 @@ export default function Expense() {
     datasets: []
   });
 
-
-  const today = new Date().toISOString().split('T')[0];
-  // Formik
-  const initialValues = {
-    amount: '',
-    categories: '',
-    description: '',
-    date: ''
-  };
-
-  const validationSchema = Yup.object({
-    amount: Yup.number().required('Amount is required').positive('Amount must be positive').integer('Amount must be an integer'),
-    categories: Yup.string().required("Category is required"),
-    description: Yup.string()
-      .matches(/[a-zA-Z]/, 'Description must include at least one letter')
-      .max(25, "Max 25 characters only")
-      .required('Description is required'),
-    date: Yup.date()
-      .max(today, `Date cannot be in the future`)
-      .required('Date is required')
-  });
+  // const today = new Date().toISOString().split('T')[0];
 
   // Handle Editing Expense
   const handleEditSubmit = async (values) => {
@@ -329,27 +313,47 @@ export default function Expense() {
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const totalBudget = totalIncome - totalExpense;
-  const percentageBudget = (totalBudget * 100) / totalIncome;
+
+  const handleAddExpenseClick = () => {
+    if (totalBudget < 0) {
+      // Show warning modal if budget is negative
+      setIsWarningOpen(true);
+    } else {
+      // Directly open expense modal if budget is positive
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleAddIncome = () => {
+    setIsWarningOpen(false);
+    // Redirect to income section or open income modal
+    navigate("/dashboard/income"); // or handle income modal differently
+  };
+
+  const handleContinueExpense = () => {
+    setIsWarningOpen(false);
+    setIsModalOpen(true);
+  };
 
   return (
     <>
       <div className="bg-blue-50">
-        <div className="fixed md:w-64 hidden md:block p-5 shadow-current/20 shadow-xl bg-blue-50">
+        <div className="fixed w-28 2xl:w-64 hidden lg:block p-5 shadow-current/20 shadow-xl bg-blue-50">
           <VerticalNavbar />
         </div>
 
-        <div className={`md:ml-64 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`} `}>
+        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`} `}>
           <Warning data={{ totalBudget, totalIncome, totalExpense }} />
           <div className={`flex items-center justify-center ${totalBudget >= 0 ? "mt-6" : ""}`}>
-            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
-              <div className="w-full flex items-center justify-between">
+            <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
+              <div className="w-full flex flex-col items-center justify-between 2xl:flex 2xl:flex-row xl:flex xl:flex-row lg:flex md:flex md:flex-col sm:flex sm:flex-col">
                 {/* Doughnut Chart */}
-                <div className="w-[300px] md:w-[400px] p-4 ">
+                <div className="w-[350px] p-4 2xl:w-[400px] xl:w-[100px] sm:w-[350px] md:w-[400px] flex-1 ">
                   <Doughnut data={doughnutData} />
                   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
                 </div>
                 {/* Bar Chart */}
-                <div className="w-[400px] md:w-[800px] p-4">
+                <div className="w-[500px] 2xl:w-[700px] xl:w-[600px] lg:w-[700px] md:w-[600px] sm:w-[500px] p-4 lg:flex-2 flex-2 ">
                   <Line data={lineData} />
                   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Bar chart </p>
                 </div>
@@ -398,64 +402,80 @@ export default function Expense() {
             modalType="add"
             transactionType="expense"
           />
+          <WarningModal
+            isOpen={isWarningOpen}
+            onClose={() => setIsWarningOpen(false)}
+            onAddIncome={handleAddIncome}
+            onContinueExpense={handleContinueExpense}
+            totalBudget={totalBudget}
+            totalIncome={totalIncome}
+            totalExpense={totalExpense}
+          />
 
           <div className="w-full flex items-center justify-center">
-            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white mb-9">
+            <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white mb-9">
               <div className="flex items-center justify-between text-center">
                 <p className="text-gray-900 font-semibold ">Recent Expenses</p>
 
-                <button onClick={() => setIsModalOpen(true)}
-                  className="px-4 py-2 text-white bg-blue-500 rounded-xl shadow-lg hover:bg-blue-600 transition-all cursor-pointer flex"
+                <button
+                  onClick={handleAddExpenseClick}
+                  className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
                 >
-                  <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z"></path>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   Add Expense
                 </button>
               </div>
               <hr className="text-current/20 my-3 shadow shadow-current/20" />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {transactions.filter((t) => t.type === "expense").map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
-                  >
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                {transactions
+                  .filter((t) => t.type === 'expense')
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 bg-red-50 group"
+                    >
+                      <div className="flex flex-1 items-center">
+                        {/* Category */}
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 capitalize">
+                            {item.categories}
+                          </p>
+                        </div>
 
-                    {/* Categories */}
-                    <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-gray-900 capitalize">{item.categories}</p>
+                        {/* Date — fixed width like in your original */}
+                        <div className="w-32">
+                          <p className="text-[12px] text-gray-900 capitalize font-medium">
+                            {item.date}
+                          </p>
+                        </div>
+
+                        {/* Actions + Amount */}
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <EditButton
+                            onClick={() => {
+                              setSelectedExpense(item);
+                              setSelectedItemId(item.id);
+                              setIsEditModalOpen(true);
+                            }}
+                          />
+                          <DeleteButton
+                            onClick={() => {
+                              setSelectedItemId(item.id);
+                              setIsDeleteModalOpen(true);
+                            }}
+                          />
+                          <span className="font-semibold min-w-[60px] text-right text-red-600">
+                            Rs. {item.amount}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Date */}
-                    <div>
-                      <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      {/* Edit button */}
-                      <EditButton onClick={() => {
-                        setSelectedExpense(item);
-                        setSelectedItemId(item.id);
-                        setIsEditModalOpen(true);
-                      }}
-                      />
-                      {/* Delete Button - Only visible on hover */}
-                      <DeleteButton
-                        onClick={() => {
-                          setSelectedItemId(item.id);
-                          setIsDeleteModalOpen(true);
-                        }}
-                      />
-                      {/* Amount */}
-                      <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
-                        Rs. {item.amount}
-                      </span>
-                    </div>
-
-                  </div>
-                ))}
+                  ))}
               </div>
+
             </div>
           </div>
 

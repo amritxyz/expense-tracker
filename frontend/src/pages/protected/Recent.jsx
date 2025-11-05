@@ -242,7 +242,6 @@ export default function Recent() {
         </div>
       </div>
 
-      {/* Doughnut and Bar Charts */}
       <div className="w-full flex items-center justify-center">
         <div className="grid grid-cols-2 gap-4 w-[90%]">
           <div className="border border-gray-300 rounded-2xl p-4 bg-gradient-to-r from-red-50 to-yellow-50">
@@ -258,15 +257,16 @@ export default function Recent() {
         </div>
       </div>
 
-      <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
-        <div className="flex items-center justify-between">
+      {/* Doughnut and Bar Charts */}
+      <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
+        <div className="2xl:flex 2xl:flex-row xl:flex xl:flex-row sm:flex sm:flex-col flex flex-col items-center justify-between xl:flex-1 lg:flex lg:flex-col lg:flex-1">
           {/* Doughnut Chart */}
-          <div className="w-[300px] md:w-[400px] p-4 ">
+          <div className="w-[300px] 2xl:w-[350px] xl:w-[360px] xl:flex-1 lg:w-[400px] p-4 2xl:flex-1 3xl:flex-1">
             <Doughnut data={doughnutData} />
             <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
           </div>
           {/* Bar Chart */}
-          <div className="w-[400px] md:w-[800px] p-4">
+          <div className="w-[500px] 2xl:w-[800px] xl:w-[650px] xl:flex-2 lg:w-[800px] sm:w-[600px] p-4 2xl:flex-2 3xl:flex-1">
             <Bar data={barData} />
             <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Bar chart </p>
           </div>
@@ -275,12 +275,12 @@ export default function Recent() {
       </div>
 
       {/* Recent Transactions */}
-      <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
+      <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
         <div className="flex items-center justify-between text-center">
           <p className="text-gray-900 font-semibold ">Recent Transactions</p>
           <button
             onClick={() => navigate("/dashboard/expense")}
-            className="px-6 py-2 text-white bg-blue-500 rounded-xl shadow-lg hover:bg-blue-600 transition-all flex items-center justify-center gap-x-1 group cursor-pointer"
+            className="px-6 py-3 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-x-1 group cursor-pointer"
           >
             See More
             <svg
@@ -293,6 +293,49 @@ export default function Recent() {
               <path fill="currentColor" d="m16.172 11l-5.364-5.364l1.414-1.414L20 12l-7.778 7.778l-1.414-1.414L16.172 13H4v-2z"></path>
             </svg>
           </button>
+        </div>
+
+        <hr className="text-current/20 my-3 shadow shadow-current/20" />
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          {transactions.map((item) => (
+            <div
+              key={item.id}
+              className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} group`}
+            >
+              {/* Transaction Info Section */}
+              <div className="flex flex-1 items-center">
+                {/* Transaction Description */}
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 capitalize">
+                    {item.type === 'income' ? item.inc_source : item.categories}
+                  </p>
+                </div>
+
+                {/* Transaction Date */}
+                <div className="w-32">
+                  <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
+                </div>
+
+                {/* Right: Buttons + Amount */}
+                <div className="flex items-center space-x-2 flex-shrink-0">
+                  <EditButton onClick={() => openEditModal(item)} />
+                  <DeleteButton
+                    onClick={() => {
+                      setSelectedItemId(item.id);
+                      setIsDeleteModalOpen(true);
+                    }}
+                  />
+                  <span className={`font-semibold min-w-[60px] text-right ${item.type === 'income' ? 'text-green-600' : 'text-red-600'}`} >
+                    Rs. {item.amount}
+                  </span>
+                </div>
+
+              </div>
+
+              {/* Action Buttons Section (Edit & Delete) */}
+            </div>
+          ))}
         </div>
 
         {/* Edit Modal - Single modal for both income and expense */}
@@ -336,41 +379,6 @@ export default function Recent() {
           itemType={selectedItem?.type || 'transaction'}
         />
 
-        <hr className="text-current/20 my-3 shadow shadow-current/20" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {transactions.map((item) => (
-            <div
-              key={item.id}
-              className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
-            >
-              {/* Transaction Info */}
-              <div className="flex flex-col space-y-1">
-                <p className="font-medium text-gray-900 capitalize">
-                  {item.type === 'income' ? item.inc_source : item.categories}
-                </p>
-              </div>
-              <div>
-                <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                {/* Edit button */}
-                <EditButton
-                  onClick={() => openEditModal(item)}
-                />
-                {/* Delete Button */}
-                <DeleteButton
-                  onClick={() => {
-                    setSelectedItemId(item.id);
-                    setIsDeleteModalOpen(true);
-                  }}
-                />
-                <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                  Rs. {item.amount}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
       <ToastContainer />
     </section>

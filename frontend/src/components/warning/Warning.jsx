@@ -4,8 +4,6 @@ export default function Warning({ data }) {
   const { totalBudget, totalIncome, totalExpense } = data;
   const navigate = useNavigate();
 
-  console.log(totalBudget);
-
   return (
     <>
       {totalBudget < 0 && (
@@ -27,7 +25,7 @@ export default function Warning({ data }) {
               </div>
               <button
                 onClick={() => navigate("/dashboard/expense")}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+                className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
               >
                 Review Expenses
               </button>

@@ -14,7 +14,7 @@ export default function TransactionModal({
 }) {
   if (!isOpen) return null;
 
-  // 💡 Dynamic validation schema
+  // Dynamic validation schema
   const validationSchema = Yup.object().shape({
     amount: Yup.number()
       .required('Amount is required')
@@ -38,7 +38,7 @@ export default function TransactionModal({
       }),
   });
 
-  // 🎯 Auto-generate title if not provided
+  // Auto-generate title if not provided
   const getTitle = () => {
     if (title) return title;
     const action = modalType === 'edit' ? 'Edit' : 'Add';
@@ -47,13 +47,13 @@ export default function TransactionModal({
   };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">{getTitle()}</h2>
+    <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50 backdrop-blur-sm">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-2xl font-semibold">{getTitle()}</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-3xl cursor-pointer"
+            className="text-gray-500 hover:text-gray-700 text-4xl cursor-pointer"
           >
             &times;
           </button>
@@ -67,16 +67,16 @@ export default function TransactionModal({
         >
           {({ isSubmitting }) => (
             <Form>
-              {/* 💰 Amount */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
+              {/* Amount */}
+              <div className="mb-5">
+                <label className="block text-lg font-medium text-gray-700">
                   Amount<span className="text-red-500">*</span>
                 </label>
                 <Field
                   name="amount"
-                  type="number"
+                  type="mb-5"
                   placeholder="Enter amount"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                  className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
                 />
                 <ErrorMessage name="amount" component="div" className="text-red-500 text-sm mt-1" />
               </div>
@@ -84,30 +84,30 @@ export default function TransactionModal({
 
               {/* Conditional Fields */}
               {transactionType === 'income' ? (
-                // 💼 Income Source
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700">
+                // Income Source
+                <div className="mb-5">
+                  <label className="block text-lg font-medium text-gray-700">
                     Income Source<span className="text-red-500">*</span>
                   </label>
                   <Field
                     name="inc_source"
                     type="text"
                     placeholder="e.g., Salary, Freelancing"
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                    className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
                   />
                   <ErrorMessage name="inc_source" component="div" className="text-red-500 text-sm mt-1" />
                 </div>
               ) : (
-                // 🏷️ Expense Category + Description
+                // Expense Category + Description
                 <>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="mb-5">
+                    <label className="block text-lg font-medium text-gray-700">
                       Category<span className="text-red-500">*</span>
                     </label>
                     <Field
                       name="categories"
                       as="select"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                      className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
                     >
                       <option value="">Select...</option>
                       <option value="Food">Food</option>
@@ -121,30 +121,30 @@ export default function TransactionModal({
                     <ErrorMessage name="categories" component="div" className="text-red-500 text-sm mt-1" />
                   </div>
 
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="mb-5">
+                    <label className="block text-lg font-medium text-gray-700">
                       Description<span className="text-red-500">*</span>
                     </label>
                     <Field
                       name="description"
                       type="text"
                       placeholder="e.g., Groceries"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                      className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
                     />
                     <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
                   </div>
                 </>
               )}
 
-              {/* 📅 Date */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
+              {/* Date */}
+              <div className="mb-5">
+                <label className="block text-lg font-medium text-gray-700">
                   Date<span className="text-red-500">*</span>
                 </label>
                 <Field
                   name="date"
                   type="date"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+                  className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
                 />
                 <ErrorMessage name="date" component="div" className="text-red-500 text-sm mt-1" />
               </div>
@@ -154,17 +154,27 @@ export default function TransactionModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 cursor-pointer"
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-200 cursor-pointer border border-gray-300 shadow-sm"
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 cursor-pointer"
-                >
-                  {modalType === 'edit' ? 'Save Changes' : 'Add'}
-                </button>
+                {transactionType == "expense" ? (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+                  >
+                    {modalType === 'edit' ? 'Save Changes' : 'Add'}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                  >
+                    {modalType === 'edit' ? 'Save Changes' : 'Add'}
+                  </button>
+                )}
               </div>
             </Form>
           )}

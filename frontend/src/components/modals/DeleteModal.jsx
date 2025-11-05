@@ -12,7 +12,7 @@ export default function DeleteModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-black/40 bg-opacity-50 z-50">
+    <div className="fixed inset-0 flex justify-center items-center bg-black/40 bg-opacity-50 z-50 backdrop-blur-sm">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-xl font-medium mb-3">Delete {itemType}</h2>
         <hr className="border-gray-300 my-4" />
@@ -27,7 +27,7 @@ export default function DeleteModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 disabled:opacity-60 cursor-pointer"
+            className="px-4 py-flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-200 cursor-pointer border border-gray-300 shadow-sm bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 disabled:opacity-60 cursor-pointer"
           >
             Cancel
           </button>
@@ -35,7 +35,7 @@ export default function DeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className="px-4 py-2 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>

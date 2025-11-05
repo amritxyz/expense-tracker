@@ -32,13 +32,13 @@ export default function LogoutModal({
   };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-black/40 bg-opacity-50 z-50">
+    <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-[100] backdrop-blur-sm">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-xl font-medium mb-3">{itemType}</h2>
         <hr className="border-gray-300 my-4" />
 
-        <p className="text-gray-700 mb-6">
-          Are you sure you want to <span className="font-semibold">{itemName}</span>?
+        <p className="text-gray-700 font-medium mb-6">
+          Are you sure you want to <span className="font-bold">{itemName}</span>?
         </p>
 
         <div className="flex justify-end gap-3">
@@ -46,7 +46,7 @@ export default function LogoutModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 disabled:opacity-60 cursor-pointer"
+            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-200 cursor-pointer border border-gray-300 shadow-sm"
           >
             Cancel
           </button>
@@ -54,7 +54,7 @@ export default function LogoutModal({
             type="button"
             onClick={handleConfirm}
             disabled={isLoading}
-            className="px-4 py-2 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+            className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>

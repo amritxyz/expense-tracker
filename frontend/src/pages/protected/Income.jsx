@@ -266,25 +266,25 @@ export default function Income() {
   return (
     <>
       <div className="bg-blue-50">
-        <div className="fixed md:w-64 hidden md:block p-5 shadow-current/20 shadow-xl bg-blue-50">
+        <div className="fixed lg:w-28 2xl:w-64 hidden lg:block p-5 shadow-current/20 shadow-xl bg-blue-50">
           <VerticalNavbar />
         </div>
 
-        <div className={`md:ml-64 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`}`}>
+        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`}`}>
           <div className="flex items-center justify-center mt-6">
-            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
+            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
               <div className="w-full flex items-center justify-between">
                 {/* Bar Chart */}
-                <div className="w-[400px] md:w-[700px] p-4 ">
+                <div className="w-[400px] md:w-[500px] p-4 flex-1">
                   <Bar data={barChartData} />
                   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Bar chart </p>
                 </div>
 
                 {/* Line Chart */}
-                <div className="w-[400px] md:w-[700px] p-4">
-                  <Line data={lineData} />
-                  <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Line chart </p>
-                </div>
+                {/* <div className="w-[400px] md:w-[700px] p-4 flex-1"> */}
+                {/*   <Line data={lineData} /> */}
+                {/*   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Line chart </p> */}
+                {/* </div> */}
               </div>
               <p className="text-gray-600 text-[15px] text-center font-medium">Weekly Spending Trend</p>
             </div>
@@ -329,61 +329,67 @@ export default function Income() {
           />
 
           <div className="w-full flex items-center justify-center ">
-            <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
+            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
               <div className="flex items-center justify-between text-center">
                 <p className="text-gray-900 font-semibold ">Recent Income</p>
+
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-6 py-2 text-white bg-blue-500 rounded-xl shadow-lg hover:bg-blue-600 transition-all cursor-pointer flex"
+                  className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                 >
-                  <svg className="mr-2" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M19 12.998h-6v6h-2v-6H5v-2h6v-6h2v6h6z"></path>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                   Add Income
                 </button>
               </div>
 
               <hr className="text-current/20 my-3 shadow shadow-current/20" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {transactions.filter((t) => t.type == "income").map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
-                  >
-                    {/* Left side: Name, Type, Date */}
-                    <div className="flex flex-col space-y-1">
-                      <p className="font-medium text-gray-900 capitalize">{item.inc_source}</p>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                {transactions
+                  .filter((t) => t.type === 'income')
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 bg-green-50 group"
+                    >
+                      <div className="flex flex-1 items-center">
+                        {/* Income Source */}
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 capitalize">
+                            {item.inc_source}
+                          </p>
+                        </div>
+
+                        {/* Date — fixed width to align with expense/date column */}
+                        <div className="w-32">
+                          <p className="text-[12px] text-gray-900 capitalize font-medium">
+                            {item.date}
+                          </p>
+                        </div>
+
+                        {/* Actions + Amount */}
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <EditButton
+                            onClick={() => {
+                              setSelectedIncome(item);
+                              setSelectedItemId(item.id);
+                              setIsEditModalOpen(true);
+                            }}
+                          />
+                          <DeleteButton
+                            onClick={() => {
+                              setSelectedItemId(item.id);
+                              setIsDeleteModalOpen(true);
+                            }}
+                          />
+                          <span className="font-semibold min-w-[60px] text-right text-green-600">
+                            Rs. {item.amount}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-
-                    <div>
-                      <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
-                    </div>
-
-                    {/* Right side: Amount and Delete Button */}
-                    <div className="flex items-center space-x-3">
-
-                      <EditButton
-                        onClick={() => {
-                          setSelectedIncome(item);
-                          setSelectedItemId(item.id);
-                          setIsEditModalOpen(true);
-                        }}
-                      />
-
-                      {/* Delete Button - Only visible on hover */}
-                      <DeleteButton
-                        onClick={() => {
-                          setSelectedItemId(item.id);
-                          setIsDeleteModalOpen(true);
-                        }}
-                      />
-
-                      <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
-                        Rs. {item.amount}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>
