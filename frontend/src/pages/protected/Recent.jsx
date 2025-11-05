@@ -10,6 +10,9 @@ import DeleteModal from "../../components/modals/DeleteModal";
 import DeleteButton from "../../components/buttons/DeleteButton";
 import EditButton from "../../components/buttons/EditButton";
 
+// Warning
+import Warning from "../../components/warning/Warning"
+
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 export default function Recent() {
@@ -229,8 +232,10 @@ export default function Recent() {
 
   return (
     <section className="flex flex-col items-center space-y-6 ">
+      <Warning data={{ totalBudget, totalIncome, totalExpense }} />
+
       {/* Available Balance */}
-      <div className="w-full flex items-center justify-center mt-6">
+      <div className={`w-full flex items-center justify-center ${totalBudget >= 0 ? "mt-6" : ""} `}>
         <div className="w-[90%] border border-gray-300 rounded-2xl p-5 bg-gradient-to-r from-blue-50 to-indigo-50">
           <p className="text-gray-600 text-sm font-medium">Available Balance</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">Rs {totalBudget}</p>

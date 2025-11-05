@@ -10,6 +10,9 @@ import EditButton from "../../components/buttons/EditButton";
 import TransactionModal from "../../components/modals/TransactionModal"
 import DeleteModal from "../../components/modals/DeleteModal"
 
+// Warning
+import Warning from "../../components/warning/Warning";
+
 import { Doughnut, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
 
@@ -316,6 +319,18 @@ export default function Expense() {
     });
   }, [transactions]);
 
+
+  const totalIncome = transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const totalExpense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const totalBudget = totalIncome - totalExpense;
+  const percentageBudget = (totalBudget * 100) / totalIncome;
+
   return (
     <>
       <div className="bg-blue-50">
@@ -324,7 +339,8 @@ export default function Expense() {
         </div>
 
         <div className={`md:ml-64 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`} `}>
-          <div className="flex items-center justify-center mt-6">
+          <Warning data={{ totalBudget, totalIncome, totalExpense }} />
+          <div className={`flex items-center justify-center ${totalBudget >= 0 ? "mt-6" : ""}`}>
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
               <div className="w-full flex items-center justify-between">
                 {/* Doughnut Chart */}
