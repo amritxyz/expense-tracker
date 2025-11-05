@@ -4,6 +4,10 @@ import { ToastContainer, toast } from "react-toastify";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 
+// Button components
+import DeleteButton from "../../components/buttons/DeleteButton";
+import EditButton from "../../components/buttons/EditButton";
+
 import { Doughnut, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
 
@@ -605,70 +609,41 @@ export default function Expense() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {transactions.filter((t) => t.type === "expense").map((item) => (
                   <div
-                    // key={item.id}
+                    key={item.id}
                     className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
                   >
-                    {/* Left side: Name, Type, Date */}
+
+                    {/* Categories */}
                     <div className="flex flex-col space-y-1">
                       <p className="font-medium text-gray-900 capitalize">{item.categories}</p>
                     </div>
 
+                    {/* Date */}
                     <div>
                       <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
                     </div>
 
                     <div className="flex items-center space-x-3">
-
                       {/* Edit button */}
-                      <button onClick={() => {
+                      <EditButton onClick={() => {
                         setSelectedExpense(item);
                         setSelectedItemId(item.id);
                         setIsEditModalOpen(true);
                       }}
-                        className="font-semibold text-green-600 opacity-0 group-hover:opacity-100 duration-200 hover:text-green-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
-                          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                            <path strokeDasharray={56} strokeDashoffset={56} d="M3 21l2 -6l11 -11c1 -1 3 -1 4 0c1 1 1 3 0 4l-11 11l-6 2">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="56;0"></animate>
-                            </path>
-                            <path strokeDasharray={8} strokeDashoffset={8} d="M15 5l4 4">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
-                            </path>
-                            <path strokeDasharray={6} strokeDashoffset={6} strokeWidth={1} d="M6 15l3 3">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="6;0"></animate>
-                            </path>
-                          </g>
-                        </svg>
-                      </button>
-
+                      />
                       {/* Delete Button - Only visible on hover */}
-                      <button
-                        onClick={() => { setSelectedItemId(item.id); setIsDeleteModalOpen(true); }}
-                        className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
-                      >
-
-                        <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
-                          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                            <path strokeDasharray={24} strokeDashoffset={24} d="M12 20h5c0.5 0 1 -0.5 1 -1v-14M12 20h-5c-0.5 0 -1 -0.5 -1 -1v-14">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="24;0"></animate>
-                            </path>
-                            <path strokeDasharray={20} strokeDashoffset={20} d="M4 5h16">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.2s" values="20;0"></animate>
-                            </path>
-                            <path strokeDasharray={8} strokeDashoffset={8} d="M10 4h4M10 9v7M14 9v7">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
-                            </path>
-                          </g>
-                        </svg>
-
-                      </button>
-
-
+                      <DeleteButton
+                        onClick={() => {
+                          setSelectedItemId(item.id);
+                          setIsDeleteModalOpen(true);
+                        }}
+                      />
+                      {/* Amount */}
                       <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
                         Rs. {item.amount}
                       </span>
                     </div>
+
                   </div>
                 ))}
               </div>

@@ -3,6 +3,10 @@ import VerticalNavbar from "./VerticalNavbar";
 import { ToastContainer, toast } from "react-toastify";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+
+import EditButton from "../../components/buttons/EditButton";
+import DeleteButton from "../../components/buttons/DeleteButton";
+
 import { Bar, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
 
@@ -16,6 +20,10 @@ export default function Income() {
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedIncome, setSelectedIncome] = useState(null);
+
   const [barChartData, setBarChartData] = useState({
     labels: [],
     datasets: []
@@ -50,6 +58,51 @@ export default function Income() {
       .max(today, `Date cannot be in the future`)
       .required('Date is required')
   });
+
+  const handleEditSubmit = async (values) => {
+    toast.loading("Updating income...");
+    const { inc_source, amount, date } = values;
+
+    const incomeData = {
+      inc_source,
+      amount: parseFloat(amount),
+      date
+    };
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/income/${selectedItemId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(incomeData),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setIsEditModalOpen(false);
+        toast.dismiss();
+        toast.success("Income updated successfully.");
+
+        // Update local state
+        setTransactions((prev) =>
+          prev.map((item) =>
+            item.id === selectedItemId ? { ...item, ...incomeData } : item
+          )
+        );
+        setRefreshKey((prev) => prev + 1);
+      } else {
+        toast.dismiss();
+        toast.error(data.message || "Failed to update income.");
+      }
+    } catch (err) {
+      toast.dismiss();
+      console.log("Edit error:", err);
+      toast.error("Error updating income.");
+    }
+  };
 
   async function handleSubmit(values) {
     toast.loading("Adding income");
@@ -258,6 +311,83 @@ export default function Income() {
             </div>
           </div>
 
+          {/* Edit Income Modal */}
+          {isEditModalOpen && selectedIncome && (
+            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <p className="text-xl font-medium mb-3">Edit Income</p>
+                <hr className="text-current/50 my-5 shadow shadow-current/20" />
+
+                <Formik
+                  initialValues={{
+                    inc_source: selectedIncome.inc_source || '',
+                    amount: selectedIncome.amount || '',
+                    date: selectedIncome.date || '',
+                  }}
+                  validationSchema={validationSchema}
+                  onSubmit={handleEditSubmit}
+                >
+                  <Form>
+                    <div className="mb-4">
+                      <label htmlFor="inc_source" className="block text-sm font-medium text-gray-700">
+                        Income Source<span className="text-red-400">*</span>
+                      </label>
+                      <Field
+                        type="text"
+                        id="inc_source"
+                        name="inc_source"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <ErrorMessage name="inc_source" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <div className="mb-6">
+                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                        Amount<span className="text-red-400">*</span>
+                      </label>
+                      <Field
+                        type="number"
+                        id="amount"
+                        name="amount"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <ErrorMessage name="amount" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <div className="mb-6">
+                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                        Date<span className="text-red-400">*</span>
+                      </label>
+                      <Field
+                        type="date"
+                        id="date"
+                        name="date"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <ErrorMessage name="date" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="submit"
+                        className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditModalOpen(false)}
+                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </Form>
+                </Formik>
+              </div>
+            </div>
+          )}
+
           {/* Modal - Delete modal */}
           {isDeleteModalOpen && (
             transactions.filter((t) => t.id === selectedItemId).map((item) => (
@@ -400,7 +530,7 @@ export default function Income() {
 
               <hr className="text-current/20 my-3 shadow shadow-current/20" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {transactions.filter((t) => t.categories == "income").map((item) => (
+                {transactions.filter((t) => t.type == "income").map((item) => (
                   <div
                     key={item.id}
                     className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
@@ -416,31 +546,23 @@ export default function Income() {
 
                     {/* Right side: Amount and Delete Button */}
                     <div className="flex items-center space-x-3">
-                      {/* Delete Button - Only visible on hover */}
-                      <button
-                        // onClick={() => handleDelete(item.id)}
+
+                      <EditButton
                         onClick={() => {
-                          setSelectedItemId(item.id); // Set the selected transaction ID
-                          setIsDeleteModalOpen(true);  // Open the delete modal
+                          setSelectedIncome(item);
+                          setSelectedItemId(item.id);
+                          setIsEditModalOpen(true);
                         }}
-                        className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
-                      >
+                      />
 
-                        <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
-                          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                            <path strokeDasharray={24} strokeDashoffset={24} d="M12 20h5c0.5 0 1 -0.5 1 -1v-14M12 20h-5c-0.5 0 -1 -0.5 -1 -1v-14">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="24;0"></animate>
-                            </path>
-                            <path strokeDasharray={20} strokeDashoffset={20} d="M4 5h16">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.2s" values="20;0"></animate>
-                            </path>
-                            <path strokeDasharray={8} strokeDashoffset={8} d="M10 4h4M10 9v7M14 9v7">
-                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
-                            </path>
-                          </g>
-                        </svg>
-
-                      </button>
+                      {/* Delete Button - Only visible on hover */}
+                      {/* Delete Button */}
+                      <DeleteButton
+                        onClick={() => {
+                          setSelectedItemId(item.id);
+                          setIsDeleteModalOpen(true);
+                        }}
+                      />
 
                       <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
                         Rs. {item.amount}
@@ -453,7 +575,7 @@ export default function Income() {
           </div>
           <ToastContainer />
         </div>
-      </div>
+      </div >
     </>
   );
 }

@@ -58,6 +58,27 @@ function insert_income(user_id, inc_source, amount, date) {
   }
 }
 
+function edit_income_by_id(user_id, id, inc_source, amount, date) {
+  const categories = "income";
+  const sql = `
+    UPDATE ${income_table}
+    SET inc_source = ?, categories = ?, amount = ?, date = ?
+    WHERE user_id = ? AND id = ?`;
+  try {
+    const result = db.prepare(sql).run(inc_source, categories, amount, date, user_id, id);
+    if (result.changes > 0) {
+      console.log(`[✓] Updated income with ID: ${id}`);
+      return { success: true, message: "Expense updated successfully." };
+    } else {
+      console.log(`[x] No income found with ID: ${id} for user ID: ${user_id}`);
+      return { success: false, message: "Expense not found or not updated." };
+    }
+  } catch (err) {
+    console.error(`[x] Failed to update income: `, err.message);
+    return { success: false, message: err.message };
+  }
+}
+
 /*
  * INFO: Function to get income table attributes
  */
@@ -84,4 +105,4 @@ function get_income_by_user(user_id) {
 }
 
 // Exporting functions
-module.exports = { create_income_table, insert_income, get_income, get_income_by_user };
+module.exports = { create_income_table, insert_income, get_income, get_income_by_user, edit_income_by_id };
