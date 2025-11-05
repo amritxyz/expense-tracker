@@ -10,7 +10,7 @@ const dbPath = path.join(__dirname, './db/database.db');
 const db = new Database(dbPath, { verbose: console.log });
 
 const { create_table, insert_user, get_users, get_user_by_email } = require('./db/login_statements');
-const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user } = require('./db/expense');
+const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user, edit_expenses_by_user } = require('./db/expense');
 const { create_income_table, insert_income, get_income, get_income_by_user } = require('./db/income');
 
 const app = express();
@@ -135,6 +135,30 @@ app.get('/expenses', authenticateJWT, (req, res) => {
   } catch (err) {
     console.error("Error fetching expenses", err);
     res.status(500).json({ message: "Error fetching expenses", error: err.message });
+  }
+});
+
+app.put('/expenses/:id', authenticateJWT, (req, res) => {
+  const user_id = req.user.id;
+  const { id } = req.params;
+  const { expense_id, amount, categories, description, date } = req.body;
+
+  if (!id || !amount || !categories || !description || !date) {
+    return res.status(400).json({ message: "All fields are required to update the expense." });
+  }
+
+  try {
+    // Call the edit function to update the expense
+    const result = edit_expenses_by_user(user_id, id, amount, categories, description, date);
+
+    if (result.success) {
+      res.status(200).json(result);
+    } else {
+      res.status(404).json({ message: result.message });
+    }
+  } catch (err) {
+    console.error("Error updating expense", err);
+    res.status(500).json({ message: "Error updating expense", error: err.message });
   }
 });
 

@@ -91,6 +91,27 @@ function insert_expense(user_id, amount, categories, description, date) {
   }
 }
 
+function edit_expenses_by_user(user_id, expense_id, amount, categories, description, date) {
+  const sql = `
+    UPDATE ${expense_table}
+    SET amount = ?, categories = ?, description = ?, date = ?
+    WHERE user_id = ? AND id = ?`;
+
+  try {
+    const result = db.prepare(sql).run(amount, categories, description, date, user_id, expense_id);
+    if (result.changes > 0) {
+      console.log(`[✓] Updated expense with ID: ${expense_id}`);
+      return { success: true, message: "Expense updated successfully." };
+    } else {
+      console.log(`[x] No expense found with ID: ${expense_id} for user ID: ${user_id}`);
+      return { success: false, message: "Expense not found or not updated." };
+    }
+  } catch (err) {
+    console.error(`[x] Failed to update expense: `, err.message);
+    return { success: false, message: err.message };
+  }
+}
+
 /*
  * INFO: Function to get expense table attributes
  */
@@ -121,4 +142,4 @@ function get_expenses_by_user(user_id) {
 }
 
 // Exporting functions
-module.exports = { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user };
+module.exports = { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user, edit_expenses_by_user };

@@ -16,6 +16,8 @@ export default function Expense() {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Edit Expense Modal
+  const [selectedExpense, setSelectedExpense] = useState(null); // Track the selected expense details for editing
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
@@ -50,6 +52,60 @@ export default function Expense() {
       .max(today, `Date cannot be in the future`)
       .required('Date is required')
   });
+
+  // Handle Editing Expense
+  const handleEditSubmit = async (values) => {
+    toast.loading("Updating Expense...");
+    const { amount, categories, description, date } = values;
+
+    const expenseData = {
+      amount: parseFloat(amount),
+      categories,
+      description,
+      date
+    };
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5000/expenses/${selectedItemId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(expenseData),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setIsEditModalOpen(false);
+        toast.dismiss();
+        toast.success("Expense updated successfully.");
+
+        // Update the transactions state with the new data
+        setTransactions((prevTransactions) =>
+          prevTransactions.map((item) =>
+            item.id === selectedItemId ? { ...item, ...expenseData } : item
+          )
+        );
+        setRefreshKey((prevKey) => prevKey + 1); // Trigger re-render
+      } else {
+        toast.dismiss();
+        toast.error(data.message || "Failed to update the expense.");
+      }
+    } catch (err) {
+      toast.dismiss();
+      console.log("Error updating expense:", err);
+      toast.error("An error occurred while updating the expense.");
+    }
+  };
+
+  // const openEditModal = (expenseId) => {
+  //   const expenseToEdit = transactions.find((expense) => expense.id === expenseId);
+  //   setSelectedExpense(expenseToEdit);
+  //   setSelectedItemId(expenseId);
+  //   setIsEditModalOpen(true);
+  // };
 
   async function handleSubmit(values) {
     toast.loading("Adding Expense...");
@@ -317,6 +373,104 @@ export default function Expense() {
               </div>
             ))
           )}
+          {/* Edit Expense Modal */}
+          {isEditModalOpen && selectedExpense && (
+            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <p className="text-xl font-medium mb-3">Edit Expense</p>
+                <hr className="text-current/50 my-5 shadow shadow-current/20" />
+
+                <Formik
+                  initialValues={{
+                    amount: selectedExpense?.amount || '',
+                    categories: selectedExpense?.categories || '',
+                    description: selectedExpense?.description || '',
+                    date: selectedExpense?.date || ''
+                  }}
+                  validationSchema={validationSchema}
+                  onSubmit={handleEditSubmit}
+                >
+                  <Form>
+                    <div className="mb-6">
+                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                        Amount<span className="text-red-400">*</span>
+                      </label>
+                      <Field
+                        type="number"
+                        id="amount"
+                        name="amount"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <ErrorMessage name="amount" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <div className="mb-4">
+                      <label htmlFor="categories" className="block text-sm font-medium text-gray-700">
+                        Expense Category<span className="text-red-400">*</span>
+                      </label>
+                      <Field
+                        as="select"
+                        id="categories"
+                        name="categories"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Food">Food</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Others">Others</option>
+                      </Field>
+                      <ErrorMessage name="categories" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <div className="mb-4">
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                        Description<span className="text-red-400">*</span>
+                      </label>
+                      <Field
+                        type="text"
+                        id="description"
+                        name="description"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <div className="mb-6">
+                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                        Date<span className="text-red-400">*</span>
+                      </label>
+                      <Field
+                        type="date"
+                        id="date"
+                        name="date"
+                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <ErrorMessage name="date" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="submit"
+                        className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md cursor-pointer"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditModalOpen(false)}
+                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </Form>
+                </Formik>
+              </div>
+            </div>
+          )}
 
           {/* Modal - Add Expense Form */}
           {isModalOpen && (
@@ -451,7 +605,7 @@ export default function Expense() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {transactions.filter((t) => t.type === "expense").map((item) => (
                   <div
-                    key={item.id}
+                    // key={item.id}
                     className={`flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0 shadow shadow-current/10 rounded-2xl p-4 ${item.type === "income" ? "bg-green-50" : "bg-red-50"} relative group`}
                   >
                     {/* Left side: Name, Type, Date */}
@@ -463,8 +617,31 @@ export default function Expense() {
                       <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
                     </div>
 
-                    {/* Right side: Amount and Delete Button */}
                     <div className="flex items-center space-x-3">
+
+                      {/* Edit button */}
+                      <button onClick={() => {
+                        setSelectedExpense(item);
+                        setSelectedItemId(item.id);
+                        setIsEditModalOpen(true);
+                      }}
+                        className="font-semibold text-green-600 opacity-0 group-hover:opacity-100 duration-200 hover:text-green-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+                            <path strokeDasharray={56} strokeDashoffset={56} d="M3 21l2 -6l11 -11c1 -1 3 -1 4 0c1 1 1 3 0 4l-11 11l-6 2">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="56;0"></animate>
+                            </path>
+                            <path strokeDasharray={8} strokeDashoffset={8} d="M15 5l4 4">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
+                            </path>
+                            <path strokeDasharray={6} strokeDashoffset={6} strokeWidth={1} d="M6 15l3 3">
+                              <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="6;0"></animate>
+                            </path>
+                          </g>
+                        </svg>
+                      </button>
+
                       {/* Delete Button - Only visible on hover */}
                       <button
                         onClick={() => { setSelectedItemId(item.id); setIsDeleteModalOpen(true); }}
@@ -486,6 +663,7 @@ export default function Expense() {
                         </svg>
 
                       </button>
+
 
                       <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`} >
                         Rs. {item.amount}
