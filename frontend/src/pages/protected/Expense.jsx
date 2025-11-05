@@ -7,6 +7,8 @@ import * as Yup from "yup";
 // Button components
 import DeleteButton from "../../components/buttons/DeleteButton";
 import EditButton from "../../components/buttons/EditButton";
+import TransactionModal from "../../components/modals/TransactionModal"
+import DeleteModal from "../../components/modals/DeleteModal"
 
 import { Doughnut, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
@@ -342,253 +344,44 @@ export default function Expense() {
             </div>
           </div>
 
-          {isDeleteModalOpen && selectedItemId && (
-            transactions.filter((t) => t.id === selectedItemId).map((item) => (
-              <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
+          {/* Reusable Delete Modal */}
+          <DeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={() => {
+              handleDelete(selectedItemId); // Your existing delete function
+              setIsDeleteModalOpen(false);
+            }}
+            itemName={
+              transactions.find(t => t.id === selectedItemId)?.categories || "expense"
+            }
+            itemType="expense"
+          />
 
-                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                  <p className="text-xl font-medium mb-3">Delete</p>
-                  <hr className="text-current/50 my-5 shadow shadow-current/20" />
-
-                  <p className="text-xl font-xl mb-3">Are you sure?</p>
-                  <div className="flex justify-end gap-2">
-                    {/* Submit Button */}
-                    <button
-                      type="submit"
-                      onClick={() => {
-                        handleDelete(item.id);
-                        setIsDeleteModalOpen(false);
-                      }}
-                      className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 cursor-pointer"
-                    >
-                      Confirm
-                    </button>
-
-                    {/* Close Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsDeleteModalOpen(false)}
-                      className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
           {/* Edit Expense Modal */}
-          {isEditModalOpen && selectedExpense && (
-            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                <p className="text-xl font-medium mb-3">Edit Expense</p>
-                <hr className="text-current/50 my-5 shadow shadow-current/20" />
-
-                <Formik
-                  initialValues={{
-                    amount: selectedExpense?.amount || '',
-                    categories: selectedExpense?.categories || '',
-                    description: selectedExpense?.description || '',
-                    date: selectedExpense?.date || ''
-                  }}
-                  validationSchema={validationSchema}
-                  onSubmit={handleEditSubmit}
-                >
-                  <Form>
-                    <div className="mb-6">
-                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                        Amount<span className="text-red-400">*</span>
-                      </label>
-                      <Field
-                        type="number"
-                        id="amount"
-                        name="amount"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <ErrorMessage name="amount" component="div" className="text-red-500 text-sm mt-1" />
-                    </div>
-
-                    <div className="mb-4">
-                      <label htmlFor="categories" className="block text-sm font-medium text-gray-700">
-                        Expense Category<span className="text-red-400">*</span>
-                      </label>
-                      <Field
-                        as="select"
-                        id="categories"
-                        name="categories"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="Food">Food</option>
-                        <option value="Transportation">Transportation</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Utilities">Utilities</option>
-                        <option value="Shopping">Shopping</option>
-                        <option value="Rent">Rent</option>
-                        <option value="Others">Others</option>
-                      </Field>
-                      <ErrorMessage name="categories" component="div" className="text-red-500 text-sm mt-1" />
-                    </div>
-
-                    <div className="mb-4">
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                        Description<span className="text-red-400">*</span>
-                      </label>
-                      <Field
-                        type="text"
-                        id="description"
-                        name="description"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
-                    </div>
-
-                    <div className="mb-6">
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-                        Date<span className="text-red-400">*</span>
-                      </label>
-                      <Field
-                        type="date"
-                        id="date"
-                        name="date"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <ErrorMessage name="date" component="div" className="text-red-500 text-sm mt-1" />
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="submit"
-                        className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md cursor-pointer"
-                      >
-                        Save Changes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditModalOpen(false)}
-                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md cursor-pointer"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </Form>
-                </Formik>
-              </div>
-            </div>
-          )}
+          <TransactionModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSubmit={handleEditSubmit}
+            initialValues={{
+              amount: selectedExpense?.amount || '',
+              categories: selectedExpense?.categories || '',
+              description: selectedExpense?.description || '',
+              date: selectedExpense?.date || ''
+            }}
+            modalType="edit"
+            transactionType="expense"
+          />
 
           {/* Modal - Add Expense Form */}
-          {isModalOpen && (
-            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                <p className="text-xl font-medium mb-3">Add Expense</p>
-                <hr className="text-current/50 my-5 shadow shadow-current/20" />
-
-                <Formik
-                  initialValues={initialValues}
-                  validationSchema={validationSchema}
-                  onSubmit={handleSubmit}
-                >
-                  <Form>
-                    {/* Amount */}
-                    <div className="mb-6">
-                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount<span className="text-red-400">*</span></label>
-                      <Field
-                        type="number"
-                        id="amount"
-                        name="amount"
-                        placeholder="Enter amount"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <ErrorMessage
-                        name="amount"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
-                    {/* categories */}
-                    <div className="mb-4">
-                      <label htmlFor="categories" className="block text-sm font-medium text-gray-700">Expense Category<span className="text-red-400">*</span></label>
-                      <Field
-                        as="select"
-                        id="categories"
-                        name="categories"
-                        placeholder="Freelancing, Salary, etc"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="" disabled>Select a category</option>
-                        <option value="Food">Food</option>
-                        <option value="Transportation">Transportation</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Utilities">Utilities</option>
-                        <option value="Shopping">Shopping</option>
-                        <option value="Rent">Rent</option>
-                        <option value="Others">Others</option>
-                      </Field>
-                      <ErrorMessage
-                        name="categories"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
-                    {/* name */}
-                    <div className="mb-4">
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description<span className="text-red-400">*</span></label>
-                      <Field
-                        type="text"
-                        id="description"
-                        name="description"
-                        placeholder="Remark"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <ErrorMessage
-                        name="description"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
-
-                    {/* Date */}
-                    <div className="mb-6 cursor-pointer">
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700 cursor-pointer">Date<span className="text-red-400">*</span></label>
-                      <Field
-                        type="date"
-                        id="date"
-                        name="date"
-                        placeholder="Enter date"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                      />
-                      <ErrorMessage
-                        name="date"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      {/* Submit Button */}
-                      <button
-                        type="submit"
-                        className="py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md cursor-pointer"
-                      >
-                        Add Expense
-                      </button>
-
-                      {/* Close Button */}
-                      <button
-                        type="button"
-                        onClick={() => setIsModalOpen(false)}
-                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </Form>
-                </Formik>
-              </div>
-            </div>
-          )}
+          <TransactionModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSubmit={handleSubmit}
+            initialValues={{ amount: '', categories: '', description: '', date: '' }}
+            modalType="add"
+            transactionType="expense"
+          />
 
           <div className="w-full flex items-center justify-center">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white mb-9">

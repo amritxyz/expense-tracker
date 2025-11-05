@@ -6,6 +6,8 @@ import * as Yup from "yup";
 
 import EditButton from "../../components/buttons/EditButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
+import TransactionModal from "../../components/modals/TransactionModal"
+import DeleteModal from "../../components/modals/DeleteModal";
 
 import { Bar, Line } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js";
@@ -35,29 +37,6 @@ export default function Income() {
   });
 
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
-
-  // Formik
-  const initialValues = {
-    inc_source: '',
-    amount: '',
-    date: ''
-  };
-
-  const today = new Date().toISOString().split('T')[0];
-  const formatDate = (date) => {
-    const d = new Date(date);
-    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-  };
-
-  const validationSchema = Yup.object({
-    inc_source: Yup.string()
-      .matches(/[a-zA-Z]/, 'Income source must include at least one letter')
-      .required('Income source is required'),
-    amount: Yup.number().required('Amount is required').positive('Amount must be positive').integer('Amount must be an integer'),
-    date: Yup.date()
-      .max(today, `Date cannot be in the future`)
-      .required('Date is required')
-  });
 
   const handleEditSubmit = async (values) => {
     toast.loading("Updating income...");
@@ -311,207 +290,43 @@ export default function Income() {
             </div>
           </div>
 
+          {/* Modal - Add Income Form */}
+          <TransactionModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSubmit={handleSubmit}
+            initialValues={{ inc_source: '', amount: '', date: '' }}
+            modalType="add"
+            transactionType="income"
+          />
+
           {/* Edit Income Modal */}
-          {isEditModalOpen && selectedIncome && (
-            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                <p className="text-xl font-medium mb-3">Edit Income</p>
-                <hr className="text-current/50 my-5 shadow shadow-current/20" />
-
-                <Formik
-                  initialValues={{
-                    inc_source: selectedIncome.inc_source || '',
-                    amount: selectedIncome.amount || '',
-                    date: selectedIncome.date || '',
-                  }}
-                  validationSchema={validationSchema}
-                  onSubmit={handleEditSubmit}
-                >
-                  <Form>
-                    <div className="mb-4">
-                      <label htmlFor="inc_source" className="block text-sm font-medium text-gray-700">
-                        Income Source<span className="text-red-400">*</span>
-                      </label>
-                      <Field
-                        type="text"
-                        id="inc_source"
-                        name="inc_source"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <ErrorMessage name="inc_source" component="div" className="text-red-500 text-sm mt-1" />
-                    </div>
-
-                    <div className="mb-6">
-                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                        Amount<span className="text-red-400">*</span>
-                      </label>
-                      <Field
-                        type="number"
-                        id="amount"
-                        name="amount"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <ErrorMessage name="amount" component="div" className="text-red-500 text-sm mt-1" />
-                    </div>
-
-                    <div className="mb-6">
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-                        Date<span className="text-red-400">*</span>
-                      </label>
-                      <Field
-                        type="date"
-                        id="date"
-                        name="date"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <ErrorMessage name="date" component="div" className="text-red-500 text-sm mt-1" />
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="submit"
-                        className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600"
-                      >
-                        Save Changes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditModalOpen(false)}
-                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </Form>
-                </Formik>
-              </div>
-            </div>
-          )}
+          <TransactionModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSubmit={handleEditSubmit}
+            initialValues={{
+              inc_source: selectedIncome?.inc_source || '',
+              amount: selectedIncome?.amount || '',
+              date: selectedIncome?.date || ''
+            }}
+            modalType="edit"
+            transactionType="income"
+          />
 
           {/* Modal - Delete modal */}
-          {isDeleteModalOpen && (
-            transactions.filter((t) => t.id === selectedItemId).map((item) => (
-              <div className="fixed inset-0 flex justify-center items-center bg-current/20 bg-opacity-50 z-50">
-
-                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                  <p className="text-xl font-medium mb-3">Delete</p>
-                  <hr className="text-current/50 my-5 shadow shadow-current/20" />
-
-                  <p className="text-xl font-xl mb-3">Are you sure?</p>
-                  <div className="flex justify-end gap-2">
-                    {/* Submit Button */}
-                    <button
-                      type="submit"
-                      onClick={() => {
-                        handleDelete(item.id);
-                        setIsDeleteModalOpen(false);
-                      }}
-                      className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 cursor-pointer"
-                    >
-                      Confirm
-                    </button>
-
-                    {/* Close Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsDeleteModalOpen(false)}
-                      className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-
-          {/* Modal - Add Income Form */}
-          {isModalOpen && (
-            <div className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                <p className="text-xl font-medium mb-3">Add Income</p>
-                <hr className="text-current/50 my-5 shadow shadow-current/20" />
-
-                <Formik
-                  initialValues={initialValues}
-                  validationSchema={validationSchema}
-                  onSubmit={handleSubmit}
-                >
-                  <Form>
-                    {/* Income Source */}
-                    <div className="mb-4">
-                      <label htmlFor="inc_source" className="block text-sm font-medium text-gray-700">Income Source<span className="text-red-400">*</span></label>
-                      <Field
-                        type="text"
-                        id="inc_source"
-                        name="inc_source"
-                        placeholder="Freelancing, Salary, etc"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <ErrorMessage
-                        name="inc_source"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
-                    {/* Amount */}
-                    <div className="mb-6">
-                      <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount<span className="text-red-400">*</span></label>
-                      <Field
-                        type="number"
-                        id="amount"
-                        name="amount"
-                        placeholder="Enter amount"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <ErrorMessage
-                        name="amount"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
-                    {/* Date */}
-                    <div className="mb-6 cursor-pointer">
-                      <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date<span className="text-red-400">*</span></label>
-                      <Field
-                        type="date"
-                        id="date"
-                        name="date"
-                        placeholder="Enter date"
-                        className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <ErrorMessage
-                        name="date"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      {/* Submit Button */}
-                      <button
-                        type="submit"
-                        className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 cursor-pointer"
-                      >
-                        Add Income
-                      </button>
-
-                      {/* Close Button */}
-                      <button
-                        type="button"
-                        onClick={() => setIsModalOpen(false)}
-                        className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </Form>
-                </Formik>
-              </div>
-            </div>
-          )}
+          <DeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={() => {
+              handleDelete(selectedItemId);
+              setIsDeleteModalOpen(false);
+            }}
+            itemName={
+              transactions.find(t => t.id === selectedItemId)?.inc_source || "income"
+            }
+            itemType="income"
+          />
 
           <div className="w-full flex items-center justify-center ">
             <div className="border border-current/20 rounded-2xl md:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
@@ -556,7 +371,6 @@ export default function Income() {
                       />
 
                       {/* Delete Button - Only visible on hover */}
-                      {/* Delete Button */}
                       <DeleteButton
                         onClick={() => {
                           setSelectedItemId(item.id);

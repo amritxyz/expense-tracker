@@ -4,16 +4,32 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { ToastContainer, toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
+// components and modals
+import TransactionModal from "../../components/modals/TransactionModal";
+import DeleteModal from "../../components/modals/DeleteModal";
+import DeleteButton from "../../components/buttons/DeleteButton";
+import EditButton from "../../components/buttons/EditButton";
+
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 export default function Recent() {
   const [transactions, setTransactions] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
+  const [selectedTransaction, setSelectedTransaction] = useState(null); // Track the selected transaction details for editing
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Edit Modal
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const selectedItem = transactions.find(t => t.id === selectedItemId);
+
   const navigate = useNavigate();
 
   async function handleDelete(id, type) {
     toast.loading("Deleting...");
+    if (!type || (type !== "income" && type !== "expense")) {
+      toast.error("Invalid transaction type");
+      return;
+    }
     try {
       const token = localStorage.getItem("token");
 
@@ -140,6 +156,77 @@ export default function Recent() {
     ],
   };
 
+  const handleEditSubmit = async (values) => {
+    if (!selectedTransaction) return;
+
+    toast.loading("Updating Transaction...");
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // Determine if it's income or expense
+      const isIncome = selectedTransaction.type === "income";
+      const endPoint = isIncome
+        ? `http://localhost:5000/income/${selectedItemId}`
+        : `http://localhost:5000/expenses/${selectedItemId}`;
+
+      // Prepare the data based on transaction type
+      let updateData;
+      if (isIncome) {
+        updateData = {
+          inc_source: values.inc_source,
+          amount: parseFloat(values.amount),
+          date: values.date
+        };
+      } else {
+        updateData = {
+          amount: parseFloat(values.amount),
+          categories: values.categories,
+          description: values.description,
+          date: values.date
+        };
+      }
+
+      const response = await fetch(endPoint, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setIsEditModalOpen(false);
+        toast.dismiss();
+        toast.success(`${selectedTransaction.type.charAt(0).toUpperCase() + selectedTransaction.type.slice(1)} updated successfully.`);
+
+        // Update the transactions state with the new data
+        setTransactions((prevTransactions) =>
+          prevTransactions.map((item) =>
+            item.id === selectedItemId ? { ...item, ...updateData } : item
+          )
+        );
+        setRefreshKey((prevKey) => prevKey + 1); // Trigger re-render
+      } else {
+        toast.dismiss();
+        toast.error(data.message || `Failed to update the ${selectedTransaction.type}.`);
+      }
+    } catch (err) {
+      toast.dismiss();
+      console.log(`Error updating ${selectedTransaction.type}:`, err);
+      toast.error(`An error occurred while updating the ${selectedTransaction.type}.`);
+    }
+  };
+
+  // Separate functions for opening edit modal
+  const openEditModal = (item) => {
+    setSelectedTransaction(item);
+    setSelectedItemId(item.id);
+    setIsEditModalOpen(true);
+  };
+
   return (
     <section className="flex flex-col items-center space-y-6 ">
       {/* Available Balance */}
@@ -203,35 +290,46 @@ export default function Recent() {
           </button>
         </div>
 
-        {/* Delete Modal */}
-        {isDeleteModalOpen && selectedItemId && (
-          transactions.filter((t) => t.id === selectedItemId).map((item) => (
-            <div
-              className="fixed inset-0 flex justify-center items-center bg-current/40 bg-opacity-50 z-50"
-              key={item.id}
-            >
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                <p className="text-xl font-medium mb-3">Delete</p>
-                <hr className="text-current/50 my-5 shadow shadow-current/20" />
-                <p className="text-xl font-xl mb-3">Are you sure?</p>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => handleDelete(item.id, item.type)}
-                    className="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 cursor-pointer"
-                  >
-                    Confirm
-                  </button>
-                  <button
-                    onClick={() => setIsDeleteModalOpen(false)}
-                    className="py-2 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+        {/* Edit Modal - Single modal for both income and expense */}
+        <TransactionModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSubmit={handleEditSubmit}
+          initialValues={
+            selectedTransaction?.type === "income"
+              ? {
+                inc_source: selectedTransaction?.inc_source || '',
+                amount: selectedTransaction?.amount || '',
+                date: selectedTransaction?.date || ''
+              }
+              : {
+                amount: selectedTransaction?.amount || '',
+                categories: selectedTransaction?.categories || '',
+                description: selectedTransaction?.description || '',
+                date: selectedTransaction?.date || ''
+              }
+          }
+          modalType="edit"
+          transactionType={selectedTransaction?.type || "expense"}
+        />
+
+        {/* Modal - Delete modal */}
+        <DeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={() => {
+            handleDelete(selectedItemId, selectedItem?.type);
+            setIsDeleteModalOpen(false);
+          }}
+          itemName={
+            selectedItem
+              ? selectedItem.type === 'income'
+                ? selectedItem.inc_source
+                : selectedItem.categories
+              : 'this item'
+          }
+          itemType={selectedItem?.type || 'transaction'}
+        />
 
         <hr className="text-current/20 my-3 shadow shadow-current/20" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -242,34 +340,25 @@ export default function Recent() {
             >
               {/* Transaction Info */}
               <div className="flex flex-col space-y-1">
-                <p className="font-medium text-gray-900 capitalize">{item.categories}</p>
+                <p className="font-medium text-gray-900 capitalize">
+                  {item.type === 'income' ? item.inc_source : item.categories}
+                </p>
               </div>
               <div>
                 <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
               </div>
               <div className="flex items-center space-x-3">
+                {/* Edit button */}
+                <EditButton
+                  onClick={() => openEditModal(item)}
+                />
                 {/* Delete Button */}
-                <button
+                <DeleteButton
                   onClick={() => {
                     setSelectedItemId(item.id);
                     setIsDeleteModalOpen(true);
                   }}
-                  className="font-semibold text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:text-red-500 hover:shadow-md hover:bg-gray-100 px-2 py-2 rounded-2xl transition-all cursor-pointer"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
-                    <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
-                      <path strokeDasharray={24} strokeDashoffset={24} d="M12 20h5c0.5 0 1 -0.5 1 -1v-14M12 20h-5c-0.5 0 -1 -0.5 -1 -1v-14">
-                        <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="24;0"></animate>
-                      </path>
-                      <path strokeDasharray={20} strokeDashoffset={20} d="M4 5h16">
-                        <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.2s" values="20;0"></animate>
-                      </path>
-                      <path strokeDasharray={8} strokeDashoffset={8} d="M10 4h4M10 9v7M14 9v7">
-                        <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.2s" values="8;0"></animate>
-                      </path>
-                    </g>
-                  </svg>
-                </button>
+                />
                 <span className={`font-semibold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}>
                   Rs. {item.amount}
                 </span>
