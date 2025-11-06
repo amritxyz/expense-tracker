@@ -49,12 +49,12 @@ export default function Expense() {
   // Handle Editing Expense
   const handleEditSubmit = async (values) => {
     toast.loading("Updating Expense...");
-    const { amount, categories, description, date } = values;
+    const { amount, categories, subcategories, date } = values;
 
     const expenseData = {
       amount: parseFloat(amount),
       categories,
-      description,
+      subcategories,
       date
     };
 
@@ -102,19 +102,19 @@ export default function Expense() {
 
   async function handleSubmit(values) {
     toast.loading("Adding Expense...");
-    const { amount, categories, description, date } = values;
+    const { amount, categories, subcategories, date } = values;
 
     /* Make sure form is filled */
-    if (!amount || !categories || !description || !date) {
+    if (!amount || !date) {
       toast.dismiss();
-      toast.warn("Please Fill in all fields")
+      toast.error("Please Fill in all fields")
       return;
     }
 
     const expenseData = {
       amount: parseFloat(amount),
       categories,
-      description,
+      subcategories,
       date
     };
 
@@ -190,13 +190,20 @@ export default function Expense() {
 
   // NOTE: data for doughnut chart
   const categoryColors = {
-    Food: "#ffcc00", // Yellow for Food
-    Transportation: "#ffc0cb", // Green for Transportation
-    Entertainment: "#2196f3", // Blue for Entertainment
-    Utilities: "#ff5722", // Orange for Utilities
-    Shopping: "#9c27b0", // Purple for Shopping
-    Rent: "#673ab7", // Deep Purple for Rent
-    Others: "#f44336", // Red for Others
+    "Food & Dining": "#ffcc00", // Yellow
+    "Housing": "#ff5722", // Orange
+    "Transportation": "#ffc0cb", // Light Pink
+    "Vehicle": "#8e44ad", // Purple
+    "Entertainment": "#2196f3", // Blue
+    "Shopping": "#9c27b0", // Purple
+    "Communication, PC": "#00bcd4", // Cyan
+    "Health & Wellness": "#4caf50", // Green
+    "Personal Care": "#f44336", // Red
+    "Education": "#3f51b5", // Indigo
+    "Travel": "#ff9800", // Amber
+    "Investments": "#607d8b", // Blue Grey
+    "Business": "#673ab7", // Deep
+    "Others": "#f44336", // Red
   };
 
   useEffect(() => {
@@ -386,7 +393,7 @@ export default function Expense() {
             initialValues={{
               amount: selectedExpense?.amount || '',
               categories: selectedExpense?.categories || '',
-              description: selectedExpense?.description || '',
+              subcategories: selectedExpense?.subcategories || '',
               date: selectedExpense?.date || ''
             }}
             modalType="edit"
@@ -398,7 +405,7 @@ export default function Expense() {
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onSubmit={handleSubmit}
-            initialValues={{ amount: '', categories: '', description: '', date: '' }}
+            initialValues={{ amount: '', categories: '', subcategories: '', date: '' }}
             modalType="add"
             transactionType="expense"
           />

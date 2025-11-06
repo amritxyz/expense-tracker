@@ -1,5 +1,5 @@
 // /src/components/modals/TransactionModal.jsx
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 
@@ -31,10 +31,6 @@ export default function TransactionModal({
       }
       : {
         categories: Yup.string().required('Category is required'),
-        description: Yup.string()
-          .matches(/[a-zA-Z]/, 'Description must include at least one letter')
-          .max(25, 'Max 25 characters')
-          .required('Description is required'),
       }),
   });
 
@@ -44,6 +40,112 @@ export default function TransactionModal({
     const action = modalType === 'edit' ? 'Edit' : 'Add';
     const type = transactionType === 'income' ? 'Income' : 'Expense';
     return `${action} ${type}`;
+  };
+
+  // Categories
+  const [isOpenCategories, setIsOpenCategories] = useState(false); // Fixed: should be boolean
+  const [selectedValue, setSelectedValue] = useState(initialValues.categories || ""); // Set initial value
+  const [searchTerm, setSearchTerm] = useState("");
+  const dropdownRef = useRef(null);
+
+  // Main categories
+  const mainCategories = [
+    "Food & Dining",
+    "Transportation",
+    "Housing",
+    "Entertainment",
+    "Shopping",
+    "Health & Wellness",
+    "Personal Care",
+    "Education",
+    "Travel",
+    "Business",
+    "Others"
+  ];
+
+  // Subcategories mapping
+  const subcategories = {
+    "Food & Dining": [
+      "Bar", "Groceries", "Cafe", "Restaurants, fast-food", "Dining out"
+    ],
+    "Housing": [
+      "Rent", "Mortgage", "Utilities", "Home insurance", "Maintenance, repairs", "Property tax"
+    ],
+    "Transportation": [
+      "Business trips", "Long distance", "Public transport", "Taxi"
+    ],
+    "Vehicle": [
+      "Fuel", "Leasing", "Parking", "Rentals", "Vehicle insurance", "Vehicle maintenance"
+    ],
+    "Entertainment": [
+      "Sports", "Alcohol, tobacco", "Books, audio, subscriptions", "Movies", "Concerts, events", "Subscriptions", "Gaming", "Hobbies", "TV, streaming", "Life events"
+    ],
+    "Shopping": [
+      "Clothes & shoes", "Drug-store", "Electronics, accessories", "Health & Beauty", "Jewelry", "Stationery, tools", "Household Items", "Gifts, joy", "Pets", "Kids"
+    ],
+    "Communication, PC": [
+      "Internet", "Phone, cell phone", "Postal services", "Software, apps, games"
+    ],
+    "Health & Wellness": [
+      "Medical", "Prescriptions", "Gym", "Health insurance", "Dental", "Vision"
+    ],
+    "Personal Care": [
+      "Hair Care", "Skincare", "Toiletries", "Personal hygiene"
+    ],
+    "Education": [
+      "Tuition", "Books/supplies", "Online courses", "Tutoring"
+    ],
+    "Travel": [
+      "Flights", "Hotels", "Car rental", "Travel insurance", "Sightseeing"
+    ],
+    "Investments": [
+      "Collections", "Financial investments", "Realty", "Savings", "Vehicles, chattels"
+    ],
+    "Business": [
+      "Office supplies", "Business meals", "Professional services", "Marketing"
+    ]
+  };
+
+  // Function to handle category selection
+  // Function to handle category selection
+  const handleCategorySelect = (value, setFieldValue) => {
+    setSelectedValue(value);  // Set the selected category (main category)
+    setFieldValue('categories', value);  // Set the selected category in Formik
+    setIsOpenCategories(false);  // Close the category dropdown
+    setSearchTerm('');  // Clear the search term
+  };
+
+  // Function to handle subcategory selection
+  const handleSubcategorySelect = (subcategories, setFieldValue) => {
+    setFieldValue('categories', subcategories);  // Set the selected subcategory in Formik
+    setIsOpenCategories(false);  // Close the dropdown
+    setSearchTerm('');  // Clear the search term
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpenCategories(false);
+        setSearchTerm(''); // Clear search when closing
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSubmit = (values) => {
+    const dataToSend = {
+      amount: values.amount,
+      categories: selectedValue,  // Main category or subcategory selected
+      subcategories: values.categories,  // Send the actual subcategory (or category if no subcategory)
+      date: values.date,
+    };
+
+    // Call the onSubmit function to send the data to the backend
+    console.log(dataToSend)
+    onSubmit(dataToSend);
   };
 
   return (
@@ -63,9 +165,9 @@ export default function TransactionModal({
         <Formik
           initialValues={initialValues}
           validationSchema={validationSchema}
-          onSubmit={onSubmit}
+          onSubmit={handleSubmit}
         >
-          {({ isSubmitting }) => (
+          {({ isSubmitting, setFieldValue }) => (
             <Form>
               {/* Amount */}
               <div className="mb-5">
@@ -74,13 +176,12 @@ export default function TransactionModal({
                 </label>
                 <Field
                   name="amount"
-                  type="mb-5"
+                  type="number" // Fixed: was "mb-5"
                   placeholder="Enter amount"
                   className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
                 />
                 <ErrorMessage name="amount" component="div" className="text-red-500 text-sm mt-1" />
               </div>
-
 
               {/* Conditional Fields */}
               {transactionType === 'income' ? (
@@ -98,40 +199,79 @@ export default function TransactionModal({
                   <ErrorMessage name="inc_source" component="div" className="text-red-500 text-sm mt-1" />
                 </div>
               ) : (
-                // Expense Category + Description
+                // Expense Category
                 <>
                   <div className="mb-5">
-                    <label className="block text-lg font-medium text-gray-700">
-                      Category<span className="text-red-500">*</span>
-                    </label>
-                    <Field
-                      name="categories"
-                      as="select"
-                      className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
-                    >
-                      <option value="">Select...</option>
-                      <option value="Food">Food</option>
-                      <option value="Transportation">Transportation</option>
-                      <option value="Entertainment">Entertainment</option>
-                      <option value="Utilities">Utilities</option>
-                      <option value="Shopping">Shopping</option>
-                      <option value="Rent">Rent</option>
-                      <option value="Others">Others</option>
-                    </Field>
+                    <label className="block text-lg font-medium text-gray-700">Category<span className="text-red-500">*</span></label>
+                    <div className="relative" ref={dropdownRef}>
+                      <div
+                        className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 cursor-pointer bg-white"
+                        onClick={() => {
+                          setIsOpenCategories(!isOpenCategories);
+                          if (!isOpenCategories) setSearchTerm(''); // Clear search when opening
+                        }}
+                      >
+                        {selectedValue || "Select Category..."}
+                      </div>
+                      {isOpenCategories && (
+                        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {/* Search input */}
+                          <input
+                            type="text"
+                            placeholder="Search categories..."
+                            className="w-full px-3 py-2 border-b border-gray-200 focus:outline-none"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                          />
+                          <div className="max-h-48 overflow-y-auto">
+                            {selectedValue === '' || !Object.keys(subcategories).includes(selectedValue) ? (
+                              mainCategories
+                                .filter(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
+                                .map((category) => (
+                                  <div
+                                    key={category}
+                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => {
+                                      if (subcategories[category]) {
+                                        setSelectedValue(category); // Show subcategories
+                                      } else {
+                                        handleCategorySelect(category, setFieldValue); // Select directly
+                                      }
+                                    }}
+                                  >
+                                    {category}
+                                  </div>
+                                ))
+                            ) : (
+                              <div>
+                                <div className="px-3 py-2 bg-gray-50 text-sm text-gray-500 border-b">
+                                  Subcategories for {selectedValue}
+                                </div>
+                                {subcategories[selectedValue]
+                                  .filter(sub => sub.toLowerCase().includes(searchTerm.toLowerCase()))
+                                  .map((subcategory) => (
+                                    <div
+                                      key={subcategory}
+                                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer pl-6"
+                                      onClick={() => handleSubcategorySelect(subcategory, setFieldValue)}
+                                    >
+                                      {subcategory}
+                                    </div>
+                                  ))
+                                }
+                                <div
+                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-blue-600 text-sm"
+                                  onClick={() => setSelectedValue('')}
+                                >
+                                  ← Back to main categories
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <ErrorMessage name="categories" component="div" className="text-red-500 text-sm mt-1" />
-                  </div>
-
-                  <div className="mb-5">
-                    <label className="block text-lg font-medium text-gray-700">
-                      Description<span className="text-red-500">*</span>
-                    </label>
-                    <Field
-                      name="description"
-                      type="text"
-                      placeholder="e.g., Groceries"
-                      className="mt-1 block w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
-                    />
-                    <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
                   </div>
                 </>
               )}

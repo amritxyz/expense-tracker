@@ -185,7 +185,6 @@ export default function Recent() {
         updateData = {
           amount: parseFloat(values.amount),
           categories: values.categories,
-          description: values.description,
           date: values.date
         };
       }
@@ -353,7 +352,6 @@ export default function Recent() {
               : {
                 amount: selectedTransaction?.amount || '',
                 categories: selectedTransaction?.categories || '',
-                description: selectedTransaction?.description || '',
                 date: selectedTransaction?.date || ''
               }
           }

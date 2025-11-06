@@ -110,15 +110,15 @@ const authenticateJWT = (req, res, next) => {
 
 /* POST /expense - Create an expense (Protected route) */
 app.post('/expense', authenticateJWT, (req, res) => {
-  const { amount, categories, description, date } = req.body;
+  const { amount, categories, subcategories, date } = req.body;
   const user_id = req.user.id;
 
-  if (!amount || !categories || !description || !date) {
+  if (!amount || !categories || !subcategories || !date) {
     return res.status(400).json({ message: "Categories, Amount and Date are required" });
   }
 
   try {
-    insert_expense(user_id, amount, categories, description, date);
+    insert_expense(user_id, amount, categories, subcategories, date);
     res.status(200).json({ message: 'Inserted expense successfully' });
   } catch (err) {
     console.error("Error during insertion of expenses", err);
@@ -141,15 +141,15 @@ app.get('/expenses', authenticateJWT, (req, res) => {
 app.put('/expenses/:id', authenticateJWT, (req, res) => {
   const user_id = req.user.id;
   const { id } = req.params;
-  const { expense_id, amount, categories, description, date } = req.body;
+  const { expense_id, amount, categories, subcategories, date } = req.body;
 
-  if (!id || !amount || !categories || !description || !date) {
+  if (!id || !amount || !categories || !date) {
     return res.status(400).json({ message: "All fields are required to update the expense." });
   }
 
   try {
     // Call the edit function to update the expense
-    const result = edit_expenses_by_user(user_id, id, amount, categories, description, date);
+    const result = edit_expenses_by_user(user_id, id, amount, categories, subcategories, date);
 
     if (result.success) {
       res.status(200).json(result);

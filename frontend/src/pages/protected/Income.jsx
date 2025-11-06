@@ -190,12 +190,14 @@ export default function Income() {
 
   useEffect(() => {
     if (transactions.length > 0) {
-      // Get the income data for the bar chart
+      // Get the income data for the bar chart, sorted by date (most recent last - for right side)
       const incomeData = transactions
         .filter((t) => t.type === "income")
+        .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sort by date, oldest first (most recent will be on the right)
         .map((t) => ({
           inc_source: t.inc_source,
           amount: Number(t.amount),
+          date: t.date, // Include date for sorting
         }));
 
       const allIncomeNames = incomeData.map((e) => e.inc_source);

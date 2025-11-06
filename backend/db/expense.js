@@ -22,8 +22,8 @@ const userid_attr = 'user_id';
 const expense_attributes = `
   ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
   ${userid_attr} INTEGER NOT NULL,
-  description TEXT NOT NULL,
   ${second_attr}  TEXT NOT NULL,
+  subcategories  TEXT NOT NULL,
   ${third_attr}  INTEGER NOT NULL,
   ${extra_attr}   DATETIME,
   FOREIGN KEY (user_id) REFERENCES login_users(id)
@@ -78,27 +78,27 @@ function create_expense_table() {
 /*
  * INFO: Function to insert a expense
  */
-function insert_expense(user_id, amount, categories, description, date) {
+function insert_expense(user_id, amount, categories, subcategories, date) {
   const sql = `
-    INSERT INTO ${expense_table} (user_id, amount, categories, description, date)
+    INSERT INTO ${expense_table} (user_id, amount, categories, subcategories, date)
     VALUES (?, ?, ?, ?, ?)
   `;
   try {
-    const result = db.prepare(sql).run(user_id, amount, categories, description, date);
+    const result = db.prepare(sql).run(user_id, amount, categories, subcategories, date);
     console.log(`[✓] Inserted expense with ID: ${result.lastInsertRowid}`);
   } catch (err) {
     console.error(`[x] Failed to insert expense: `, err.message);
   }
 }
 
-function edit_expenses_by_user(user_id, expense_id, amount, categories, description, date) {
+function edit_expenses_by_user(user_id, expense_id, amount, categories, subcategories, date) {
   const sql = `
     UPDATE ${expense_table}
-    SET amount = ?, categories = ?, description = ?, date = ?
+    SET amount = ?, categories = ?, subcategories = ?, date = ?
     WHERE user_id = ? AND id = ?`;
 
   try {
-    const result = db.prepare(sql).run(amount, categories, description, date, user_id, expense_id);
+    const result = db.prepare(sql).run(amount, categories, subcategories, date, user_id, expense_id);
     if (result.changes > 0) {
       console.log(`[✓] Updated expense with ID: ${expense_id}`);
       return { success: true, message: "Expense updated successfully." };
