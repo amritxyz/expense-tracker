@@ -18,12 +18,31 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
+const createCenterTextPlugin = (displayText) => ({
+  id: 'centerText',
+  beforeDraw(chart) {
+    const { ctx, width, height } = chart;
+    ctx.save();
+
+    const fontSize = Math.min(width, height) / 12;
+    ctx.font = `bold ${Math.floor(fontSize)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#333';
+
+    ctx.fillText(displayText || '', width / 2, height / 2);
+
+    ctx.restore();
+  }
+});
+
 export default function Expense() {
   /* INFO: useStates */
-  const [description, setDescription] = useState("");
-  const [categories, setCategories] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("");
+  // Remove these unused state variables:
+  // const [description, setDescription] = useState("");
+  // const [categories, setCategories] = useState("");
+  // const [amount, setAmount] = useState("");
+  // const [date, setDate] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Edit Expense Modal
   const [selectedExpense, setSelectedExpense] = useState(null); // Track the selected expense details for editing
@@ -31,6 +50,15 @@ export default function Expense() {
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
   const [isWarningOpen, setIsWarningOpen] = useState(false);
+
+  // Define transactions state HERE, before it's used
+  const [transactions, setTransactions] = useState([]);
+
+  const [drilldown, setDrilldown] = useState({
+    level: 'category',     // or 'subcategory'
+    parentCategory: null   // e.g., "Food"
+  });
+
 
   const navigate = useNavigate();
 
@@ -105,9 +133,9 @@ export default function Expense() {
     const { amount, categories, subcategories, date } = values;
 
     /* Make sure form is filled */
-    if (!amount || !date) {
+    if (!amount || !categories || !date) {
       toast.dismiss();
-      toast.error("Please Fill in all fields")
+      toast.warn("Please Fill in all fields")
       return;
     }
 
@@ -186,7 +214,6 @@ export default function Expense() {
     }
   }
 
-  const [transactions, setTransactions] = useState([]);
 
   // NOTE: data for doughnut chart
   const categoryColors = {
@@ -205,6 +232,23 @@ export default function Expense() {
     "Business": "#673ab7", // Deep
     "Others": "#f44336", // Red
   };
+  const subcategoryColorPalette = [
+    "#FF6384", // red
+    "#36A2EB", // blue
+    "#FFCE56", // yellow
+    "#4BC0C0", // teal
+    "#9966FF", // purple
+    "#FF9F40", // orange
+    "#8AC926", // green
+    "#F74F8D", // pink
+    "#1E88E5", // vivid blue
+    "#FFD662", // gold
+    "#00C853", // bright green
+    "#AA66CC", // lavender
+    "#FF7043", // warm orange
+    "#26C6DA", // sky blue
+    "#7E57C2", // deep purple
+  ];
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -232,37 +276,66 @@ export default function Expense() {
         setTransactions(all);
       })
       .catch((err) => console.error("Error fetching transactions:", err));
-  }, [refreshKey]);
+  }, [refreshKey]); // Or consider using a more specific dependency like an auth token change
 
   useEffect(() => {
-    // Get the expense data
-    const expenseName = transactions
-      .filter((t) => t.type === "expense")
-      .map((t) => ({
-        categories: t.categories,
-        amount: Number(t.amount)
+    if (!transactions) return; // Add this check to prevent errors if transactions is still null/undefined initially
+
+    const expenses = transactions
+      .filter(t => t.type === "expense")
+      .map(t => ({
+        ...t,
+        amount: Number(t.amount),
+        category: t.categories || "Uncategorized",
+        subcategory: t.subcategories || "Other"
       }));
 
-    const allExpenseName = expenseName.map((e) => e.categories);
-    const allExpenseAmount = expenseName.map((e) => e.amount);
+    let labels = [];
+    let data = [];
+    let backgroundColor = [];
 
-    const expenseColors = allExpenseName.map((name) => categoryColors[name] || "#cccccc");
+    if (drilldown.level === 'category') {
+      // Group by main category
+      const grouped = {};
+      expenses.forEach(e => {
+        grouped[e.category] = (grouped[e.category] || 0) + e.amount;
+      });
+      labels = Object.keys(grouped);
+      data = Object.values(grouped);
+      backgroundColor = labels.map(cat => categoryColors[cat] || "#cccccc");
+
+    } else if (drilldown.level === 'subcategory') {
+      // Group by subcategory under selected parent
+      const filtered = expenses.filter(e => e.category === drilldown.parentCategory);
+      const grouped = {};
+      filtered.forEach(e => {
+        grouped[e.subcategory] = (grouped[e.subcategory] || 0) + e.amount;
+      });
+      labels = Object.keys(grouped);
+      data = Object.values(grouped);
+      // Use parent category color as base, or subcategory if defined
+      backgroundColor = labels.map((_, index) =>
+        subcategoryColorPalette[index % subcategoryColorPalette.length] ||
+        categoryColors[drilldown.parentCategory] ||
+        "#cccccc"
+      );
+    }
 
     setDoughnutData({
-      labels: allExpenseName,
-      datasets: [
-        {
-          data: allExpenseAmount,
-          backgroundColor: expenseColors,
-          borderWidth: 1,
-        },
-      ],
+      labels,
+      datasets: [{
+        data,
+        backgroundColor,
+        borderWidth: 1,
+      }]
     });
-  }, [transactions]);
+  }, [transactions, drilldown]);
 
   // INFO: Data for line chart
   // Get last 7 days
   useEffect(() => {
+    if (!transactions) return; // Add this check for safety
+
     // Get the last 7 days
     const getLast7Days = () => {
       const days = [];
@@ -342,6 +415,17 @@ export default function Expense() {
     setIsModalOpen(true);
   };
 
+  // Compute center text
+  // In your component
+  const centerText =
+    drilldown.level === 'category'
+      ? `$${totalExpense}`
+      : drilldown.parentCategory || '';
+
+  // Get plugin instance
+  const centerPlugin = createCenterTextPlugin(centerText);
+
+
   return (
     <>
       <div className="bg-blue-50">
@@ -356,7 +440,40 @@ export default function Expense() {
               <div className="w-full flex flex-col items-center justify-between 2xl:flex 2xl:flex-row xl:flex xl:flex-row lg:flex md:flex md:flex-col sm:flex sm:flex-col">
                 {/* Doughnut Chart */}
                 <div className="w-[350px] p-4 2xl:w-[400px] xl:w-[100px] sm:w-[350px] md:w-[400px] flex-1 ">
-                  <Doughnut data={doughnutData} />
+                  <Doughnut
+                    data={doughnutData}
+                    plugins={[centerPlugin]}
+                    options={{
+                      cutout: '70%',
+                      onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                          const index = elements[0].index;
+                          const clickedLabel = doughnutData.labels[index];
+
+                          if (drilldown.level === 'category') {
+                            // Drill down to subcategories
+                            setDrilldown({
+                              level: 'subcategory',
+                              parentCategory: clickedLabel
+                            });
+                          }
+                          // Optionally: ignore click on subcategory level (or go deeper if needed)
+                        }
+                      },
+                      plugins: {
+                        legend: { display: true },
+                        tooltip: { enabled: true }
+                      }
+                    }}
+                  />
+                  {drilldown.level === 'subcategory' && (
+                    <button
+                      onClick={() => setDrilldown({ level: 'category', parentCategory: null })}
+                      style={{ marginBottom: '1rem' }}
+                    >
+                      ← Back to All Categories
+                    </button>
+                  )}
                   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
                 </div>
                 {/* Bar Chart */}
@@ -438,7 +555,7 @@ export default function Expense() {
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 {transactions
-                  .filter((t) => t.type === 'expense')
+                  .filter((t) => t.type === 'expense') // This filter now works correctly
                   .map((item) => (
                     <div
                       key={item.id}

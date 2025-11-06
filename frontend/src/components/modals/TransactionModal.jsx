@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
+import { useLocation } from 'react-router-dom';
 
 export default function TransactionModal({
   isOpen,
@@ -13,6 +14,8 @@ export default function TransactionModal({
   title // Optional override
 }) {
   if (!isOpen) return null;
+
+  const location = useLocation();
 
   // Dynamic validation schema
   const validationSchema = Yup.object().shape({
@@ -136,16 +139,22 @@ export default function TransactionModal({
   }, []);
 
   const handleSubmit = (values) => {
-    const dataToSend = {
-      amount: values.amount,
-      categories: selectedValue,  // Main category or subcategory selected
-      subcategories: values.categories,  // Send the actual subcategory (or category if no subcategory)
-      date: values.date,
-    };
-
-    // Call the onSubmit function to send the data to the backend
-    console.log(dataToSend)
-    onSubmit(dataToSend);
+    if (location.pathname == "/dashboard/expense") {
+      const dataToSend = {
+        amount: values.amount,
+        categories: selectedValue,  // Main category or subcategory selected
+        subcategories: values.categories,  // Send the actual subcategory (or category if no subcategory)
+        date: values.date,
+      };
+      onSubmit(dataToSend);
+    } else {
+      const dataToSend = {
+        amount: values.amount,
+        inc_source: values.inc_source,
+        date: values.date,
+      };
+      onSubmit(dataToSend);
+    }
   };
 
   return (
