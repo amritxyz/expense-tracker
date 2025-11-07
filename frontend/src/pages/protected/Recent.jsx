@@ -261,7 +261,33 @@ export default function Recent() {
         <div className="2xl:flex 2xl:flex-row xl:flex xl:flex-row sm:flex sm:flex-col flex flex-col items-center justify-between xl:flex-1 lg:flex lg:flex-col lg:flex-1">
           {/* Doughnut Chart */}
           <div className="w-[300px] 2xl:w-[350px] xl:w-[360px] xl:flex-1 lg:w-[400px] p-4 2xl:flex-1 3xl:flex-1">
-            <Doughnut data={doughnutData} />
+            {/* <Doughnut data={doughnutData} /> */}
+
+            <Doughnut
+              data={doughnutData}
+              options={{
+                cutout: '70%',
+                onClick: (event, elements) => {
+                  if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const clickedLabel = doughnutData.labels[index];
+
+                    if (drilldown.level === 'category') {
+                      // Drill down to subcategories
+                      setDrilldown({
+                        level: 'subcategory',
+                        parentCategory: clickedLabel
+                      });
+                    }
+                    // Optionally: ignore click on subcategory level (or go deeper if needed)
+                  }
+                },
+                plugins: {
+                  legend: { display: true },
+                  tooltip: { enabled: true }
+                }
+              }}
+            />
             <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
           </div>
           {/* Bar Chart */}

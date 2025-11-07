@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import VerticalNavbar from "./VerticalNavbar";
 import { ToastContainer, toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +18,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
-const createCenterTextPlugin = (displayText) => ({
+const createCenterTextPlugin = (centerText) => ({
   id: 'centerText',
   beforeDraw(chart) {
     const { ctx, width, height } = chart;
@@ -30,7 +30,7 @@ const createCenterTextPlugin = (displayText) => ({
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#333';
 
-    ctx.fillText(displayText || '', width / 2, height / 2);
+    ctx.fillText(centerText || '', width / 2, height / 1.9);
 
     ctx.restore();
   }
@@ -392,6 +392,15 @@ export default function Expense() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
+  // Compute center text
+  // In your component
+  const centerText = drilldown.level === 'category'
+    ? ` Rs ${totalExpense.toFixed(2)} `
+    : drilldown.parentCategory || '';
+
+  // Get plugin instance
+  const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);
+
   const totalBudget = totalIncome - totalExpense;
 
   const handleAddExpenseClick = () => {
@@ -415,17 +424,6 @@ export default function Expense() {
     setIsModalOpen(true);
   };
 
-  // Compute center text
-  // In your component
-  const centerText =
-    drilldown.level === 'category'
-      ? `$${totalExpense}`
-      : drilldown.parentCategory || '';
-
-  // Get plugin instance
-  const centerPlugin = createCenterTextPlugin(centerText);
-
-
   return (
     <>
       <div className="bg-blue-50">
@@ -441,8 +439,9 @@ export default function Expense() {
                 {/* Doughnut Chart */}
                 <div className="w-[350px] p-4 2xl:w-[400px] xl:w-[100px] sm:w-[350px] md:w-[400px] flex-1 ">
                   <Doughnut
+                    key={centerText}
                     data={doughnutData}
-                    plugins={[centerPlugin]}
+                    plugins={[centerTextPlugin]}
                     options={{
                       cutout: '70%',
                       onClick: (event, elements) => {
