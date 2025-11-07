@@ -465,14 +465,6 @@ export default function Expense() {
                       }
                     }}
                   />
-                  {drilldown.level === 'subcategory' && (
-                    <button
-                      onClick={() => setDrilldown({ level: 'category', parentCategory: null })}
-                      style={{ marginBottom: '1rem' }}
-                    >
-                      ← Back to All Categories
-                    </button>
-                  )}
                   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
                 </div>
                 {/* Bar Chart */}
@@ -484,6 +476,15 @@ export default function Expense() {
               <div className="flex items-center justify-between">
               </div>
               <p className="text-gray-600 text-[15px] text-center font-medium">Weekly Spending Trend</p>
+              {drilldown.level === 'subcategory' && (
+                <button
+                  onClick={() => setDrilldown({ level: 'category', parentCategory: null })}
+                  style={{ marginBottom: '1rem' }}
+                  className="font-medium text-gray-600 mt-5 hover:text-gray-800 cursor-pointer "
+                >
+                  ← Back to All Categories
+                </button>
+              )}
             </div>
           </div>
 

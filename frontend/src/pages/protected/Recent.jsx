@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
 import { ToastContainer, toast } from "react-toastify";
@@ -14,6 +14,24 @@ import EditButton from "../../components/buttons/EditButton";
 import Warning from "../../components/warning/Warning"
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+
+const createCenterTextPlugin = (centerText) => ({
+  id: 'centerText',
+  beforeDraw(chart) {
+    const { ctx, width, height } = chart;
+    ctx.save();
+
+    const fontSize = Math.min(width, height) / 12;
+    ctx.font = `bold ${Math.floor(fontSize)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#333';
+
+    ctx.fillText(centerText || '', width / 2, height / 1.9);
+
+    ctx.restore();
+  }
+});
 
 export default function Recent() {
   const [transactions, setTransactions] = useState([]);
@@ -103,6 +121,13 @@ export default function Recent() {
   const totalExpense = transactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  // Compute center text
+  // In your component
+  const centerText = ` Rs ${totalIncome.toFixed(2)} `
+
+  // Get plugin instance
+  const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);
 
   const totalBudget = totalIncome - totalExpense;
   const percentageBudget = (totalBudget * 100) / totalIncome;
@@ -264,7 +289,9 @@ export default function Recent() {
             {/* <Doughnut data={doughnutData} /> */}
 
             <Doughnut
+              key={centerText}
               data={doughnutData}
+              plugins={[centerTextPlugin]}
               options={{
                 cutout: '70%',
                 onClick: (event, elements) => {
