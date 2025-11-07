@@ -122,15 +122,15 @@ export default function Recent() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
+  const totalBudget = totalIncome - totalExpense;
+  const percentageBudget = (totalBudget * 100) / totalIncome;
+
   // Compute center text
   // In your component
-  const centerText = ` Rs ${totalIncome.toFixed(2)} `
+  const centerText = ` Rs ${totalBudget.toFixed(2)} `
 
   // Get plugin instance
   const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);
-
-  const totalBudget = totalIncome - totalExpense;
-  const percentageBudget = (totalBudget * 100) / totalIncome;
 
   const doughnutData = {
     labels: ["Income", "Expenses"],
