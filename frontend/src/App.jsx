@@ -7,6 +7,7 @@ import Dashboard from "./pages/protected/Dashboard";
 import Expense from "./pages/protected/Expense";
 import Income from "./pages/protected/Income";
 import Profile from "./pages/protected/Profile";
+import Error404 from "./pages/Error404"
 import ProtectedRoute from "./components/ProtectedRoute"
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
     <>
       <BrowserRouter>
         <Routes>
+          <Route path="*" element={<Error404 />} />
           <Route path="/" element={<Hero />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
