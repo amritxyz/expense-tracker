@@ -123,20 +123,25 @@ export default function Recent() {
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const totalBudget = totalIncome - totalExpense;
+
   const percentageBudget = (totalBudget * 100) / totalIncome;
+
+  let incomeLeft = totalBudget;
+  if (incomeLeft < 0)
+    incomeLeft = 0;
 
   // Compute center text
   // In your component
-  const centerText = ` Rs ${totalBudget.toFixed(2)} `
+  const centerText = ` Rs ${incomeLeft.toFixed(2)} `
 
   // Get plugin instance
   const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);
 
   const doughnutData = {
-    labels: ["Income", "Expenses"],
+    labels: ["Income left", "Total Expense"],
     datasets: [
       {
-        data: [totalIncome, totalExpense],
+        data: [incomeLeft, totalExpense],
         backgroundColor: ["#4ade80", "#f87171"],
         borderWidth: 1,
       },
