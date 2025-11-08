@@ -1,7 +1,6 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Navigate } from 'react-router-dom';
 
 // Create the context
 export const AuthContext = createContext();

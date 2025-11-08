@@ -21,16 +21,22 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 const createCenterTextPlugin = (centerText) => ({
   id: 'centerText',
   beforeDraw(chart) {
-    const { ctx, width, height } = chart;
+    const { ctx, chartArea, width, height } = chart;
+    const centerX = (chartArea.left + chartArea.right) / 2;
+    const centerY = (chartArea.top + chartArea.bottom) / 2;
     ctx.save();
 
-    const fontSize = Math.min(width, height) / 12;
+    const fontSize = Math.min(width, height) / 14;
     ctx.font = `bold ${Math.floor(fontSize)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#333';
+    let newCenterText = centerText.split("\n");
+    const lineHeight = fontSize * 1.2;
 
-    ctx.fillText(centerText || '', width / 2, height / 1.9);
+    newCenterText.forEach((line, index) => {
+      ctx.fillText(line, centerX, centerY - (newCenterText.length - 1) * lineHeight / 2 + index * lineHeight);
+    });
 
     ctx.restore();
   }
@@ -50,6 +56,7 @@ export default function Expense() {
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
   const [isWarningOpen, setIsWarningOpen] = useState(false);
+  const [hellCenterText, setCenterText] = useState("");
 
   // Define transactions state HERE, before it's used
   const [transactions, setTransactions] = useState([]);
@@ -329,6 +336,11 @@ export default function Expense() {
         borderWidth: 1,
       }]
     });
+    if (drilldown.level === 'subcategory') {
+      const totalSubcategoryExpense = data.reduce((sum, currentValue) => sum + currentValue, 0);
+      const centerText = `${drilldown.parentCategory}\n Rs ${totalSubcategoryExpense.toFixed(2)}`;
+      setCenterText(centerText);
+    }
   }, [transactions, drilldown]);
 
   // INFO: Data for line chart
@@ -395,8 +407,8 @@ export default function Expense() {
   // Compute center text
   // In your component
   const centerText = drilldown.level === 'category'
-    ? ` Rs ${totalExpense.toFixed(2)} `
-    : drilldown.parentCategory || '';
+    ? `Total Expense\nRs ${totalExpense.toFixed(2)} `
+    : `${hellCenterText}` || '';
 
   // Get plugin instance
   const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);

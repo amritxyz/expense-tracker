@@ -139,7 +139,7 @@ export default function TransactionModal({
   }, []);
 
   const handleSubmit = (values) => {
-    if (location.pathname == "/dashboard/expense") {
+    if (transactionType == "expense") {
       const dataToSend = {
         amount: values.amount,
         categories: selectedValue,  // Main category or subcategory selected

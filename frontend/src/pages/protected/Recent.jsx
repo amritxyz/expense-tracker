@@ -21,13 +21,14 @@ const createCenterTextPlugin = (centerText) => ({
     const { ctx, width, height } = chart;
     ctx.save();
 
-    const fontSize = Math.min(width, height) / 12;
+    const fontSize = Math.min(width, height) / 14;
     ctx.font = `bold ${Math.floor(fontSize)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#333';
 
-    ctx.fillText(centerText || '', width / 2, height / 1.9);
+    ctx.fillText("Income Left" || '', width / 2, height / 2.1);
+    ctx.fillText(centerText || '', width / 2, height / 1.7);
 
     ctx.restore();
   }
@@ -215,6 +216,7 @@ export default function Recent() {
         updateData = {
           amount: parseFloat(values.amount),
           categories: values.categories,
+          subcategories: values.subcategories,
           date: values.date
         };
       }
@@ -410,6 +412,7 @@ export default function Recent() {
               : {
                 amount: selectedTransaction?.amount || '',
                 categories: selectedTransaction?.categories || '',
+                subcategories: selectedTransaction?.subcategories || '',
                 date: selectedTransaction?.date || ''
               }
           }

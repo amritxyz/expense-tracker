@@ -9,7 +9,7 @@ const path = require('path');
 const dbPath = path.join(__dirname, './db/database.db');
 const db = new Database(dbPath, { verbose: console.log });
 
-const { create_table, insert_user, get_users, get_user_by_email } = require('./db/login_statements');
+const { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id } = require('./db/login_statements');
 const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user, edit_expenses_by_user } = require('./db/expense');
 const { create_income_table, insert_income, get_income, get_income_by_user, edit_income_by_id } = require('./db/income');
 
@@ -141,7 +141,7 @@ app.get('/expenses', authenticateJWT, (req, res) => {
 app.put('/expenses/:id', authenticateJWT, (req, res) => {
   const user_id = req.user.id;
   const { id } = req.params;
-  const { expense_id, amount, categories, subcategories, date } = req.body;
+  const { amount, categories, subcategories, date } = req.body;
 
   if (!id || !amount || !categories || !date) {
     return res.status(400).json({ message: "All fields are required to update the expense." });
@@ -250,6 +250,31 @@ app.delete('/income/:id', authenticateJWT, (req, res) => {
   } catch (err) {
     console.error("Error deleting income:", err.message);
     res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+});
+
+// GET /profile — Get current user's profile
+app.get('/profile', authenticateJWT, (req, res) => {
+  const user = get_user_by_id(req.user.id);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  res.json(user);
+});
+
+// PUT /profile — Update current user's profile (name & email only)
+app.put('/profile', authenticateJWT, (req, res) => {
+  const user_id = req.user.id;
+  const { user_name, email } = req.body;
+
+  if (!user_name || !email) {
+    return res.status(400).json({ message: 'Name and Email are required' });
+  }
+
+  const result = update_user_by_id(user_id, user_name, email);
+  if (result.changes > 0) {
+    const updated = get_user_by_id(user_id);
+    res.json({ message: 'Profile updated', user: updated });
+  } else {
+    res.status(404).json({ message: 'Update failed' });
   }
 });
 

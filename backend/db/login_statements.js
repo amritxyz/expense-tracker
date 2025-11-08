@@ -78,5 +78,15 @@ function get_user_by_email(email) {
   return db.prepare(`SELECT * FROM ${table_name} WHERE email = ?`).get(email);
 }
 
+function get_user_by_id(id) {
+  return db.prepare(`SELECT id, user_name, email, created_at FROM ${table_name} WHERE id = ?`).get(id);
+}
+
+function update_user_by_id(id, user_name, email) {
+  const sql = `UPDATE ${table_name} SET ${second_attr} = ?, ${third_attr} = ? WHERE ${first_attr} = ?`;
+  const result = db.prepare(sql).run(user_name, email, id);
+  return { changes: result.changes };
+}
+
 // Exporting functions
-module.exports = { create_table, insert_user, get_users, get_user_by_email };
+module.exports = { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id };
