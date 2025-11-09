@@ -57,6 +57,7 @@ export default function Expense() {
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
   const [isWarningOpen, setIsWarningOpen] = useState(false);
   const [hellCenterText, setCenterText] = useState("");
+  const [pendingExpense, setPendingExpense] = useState("");
 
   // Define transactions state HERE, before it's used
   const [transactions, setTransactions] = useState([]);
@@ -134,6 +135,17 @@ export default function Expense() {
   //   setSelectedItemId(expenseId);
   //   setIsEditModalOpen(true);
   // };
+
+  async function handleExpenseSubmit(values) {
+    const expenseAmount = parseFloat(values.amount);
+
+    if (totalIncome - (totalExpense + expenseAmount) < 0) {
+      setPendingExpense(values);
+      setIsWarningOpen(true);
+    } else {
+      await handleSubmit(values);
+    }
+  };
 
   async function handleSubmit(values) {
     toast.loading("Adding Expense...");
@@ -434,6 +446,10 @@ export default function Expense() {
   const handleContinueExpense = () => {
     setIsWarningOpen(false);
     setIsModalOpen(true);
+    if (pendingExpense) {
+      handleSubmit(pendingExpense);
+      setPendingExpense(null);
+    }
   };
 
   return (
@@ -533,19 +549,23 @@ export default function Expense() {
           <TransactionModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onSubmit={handleSubmit}
+            onSubmit={handleExpenseSubmit}
             initialValues={{ amount: '', categories: '', subcategories: '', date: '' }}
             modalType="add"
             transactionType="expense"
           />
           <WarningModal
             isOpen={isWarningOpen}
-            onClose={() => setIsWarningOpen(false)}
+            onClose={() => {
+              setIsWarningOpen(false);
+              setPendingExpense(null);
+            }}
             onAddIncome={handleAddIncome}
             onContinueExpense={handleContinueExpense}
             totalBudget={totalBudget}
             totalIncome={totalIncome}
             totalExpense={totalExpense}
+            pendingExpense={pendingExpense}
           />
 
           <div className="w-full flex items-center justify-center">

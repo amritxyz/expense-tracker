@@ -8,9 +8,15 @@ export default function WarningModal({
   onContinueExpense,
   totalBudget,
   totalIncome,
-  totalExpense
+  totalExpense,
+  pendingExpense // New prop for pending expense data
 }) {
   if (!isOpen) return null;
+
+  // Calculate new totals if expense is added
+  const newExpenseAmount = pendingExpense ? parseFloat(pendingExpense.amount) : 0;
+  const newTotalExpense = totalExpense + newExpenseAmount;
+  const newBudget = totalIncome - newTotalExpense;
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-black/50 z-50 backdrop-blur-sm">
@@ -45,23 +51,29 @@ export default function WarningModal({
               <span className="text-sm font-bold text-green-600">Rs {totalIncome}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-600">Expenses</span>
+              <span className="text-sm font-medium text-gray-600">Current Expenses</span>
               <span className="text-sm font-bold text-red-600">Rs {totalExpense}</span>
             </div>
+            {pendingExpense && (
+              <div className="flex justify-between items-center mb-2 pl-4 border-l-2 border-red-300">
+                <span className="text-sm font-medium text-gray-600">+ New Expense</span>
+                <span className="text-sm font-bold text-red-600">Rs {newExpenseAmount}</span>
+              </div>
+            )}
             <hr className="border-red-200 my-2" />
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-600">Budget</span>
-              <span className={`text-sm font-bold ${totalBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                Rs {totalBudget}
+              <span className="text-sm font-medium text-gray-600">New Budget</span>
+              <span className={`text-sm font-bold ${newBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                Rs {newBudget}
               </span>
             </div>
           </div>
 
           <p className="text-gray-700 font-medium text-center mb-2">
-            You're currently spending more than you earn.
+            Adding this expense will put you over budget.
           </p>
           <p className="text-gray-600 font-medium text-center text-sm">
-            Would you like to add income or continue adding an expense?
+            Would you like to add income or continue adding this expense?
           </p>
         </div>
 
