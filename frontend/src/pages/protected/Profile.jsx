@@ -126,7 +126,7 @@ export default function Profile() {
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200 w-[50%]">
               <div className="flex flex-col items-center mb-6">
                 {/* Avatar */}
-                <div className="relative mb-4">
+                <div className="mb-4">
                   {user.avatar ? (
                     <img
                       src={user.avatar}
@@ -194,7 +194,7 @@ export default function Profile() {
                       type="button"
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 cursor-pointer shadow-lg shadow-gray-50 flex items-center justify-center gap-2"
                     >
                       {isSaving ? (
                         <>
@@ -212,7 +212,7 @@ export default function Profile() {
                 ) : (
                   <button
                     onClick={handleEditClick}
-                    className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+                    className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 cursor-pointer shadow-lg shadow-gray-50 flex items-center justify-center gap-2"
                   >
                     Edit Profile
                   </button>
