@@ -282,7 +282,7 @@ export default function Recent() {
           <div className="border border-gray-300 rounded-2xl p-4 bg-gradient-to-r from-green-50 to-teal-50">
             <p className="text-gray-600 text-sm font-medium">Budget Left</p>
             <p className="text-lg font-bold text-green-600 mt-1">
-              {isNaN(percentageBudget) ? "Nil" : Math.round(percentageBudget)} %
+              {isNaN(percentageBudget) || "Infinity" ? "Nil" : Math.round(percentageBudget)} %
             </p>
           </div>
         </div>
