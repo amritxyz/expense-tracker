@@ -14,6 +14,105 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
+// Helper function to format dates based on time period
+const formatDateLabel = (dateString, period) => {
+  const date = new Date(dateString);
+
+  switch (period) {
+    case 'weekly':
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    case 'monthly':
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    case 'yearly':
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    default:
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+};
+
+// Helper function to get date ranges based on time period
+const getDateRange = (period) => {
+  const today = new Date();
+  const ranges = [];
+
+  switch (period) {
+    case 'weekly':
+      // Last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+      break;
+
+    case 'monthly':
+      // Last 30 days
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+      break;
+
+    case 'yearly':
+      // Last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        d.setDate(1); // First day of month for grouping
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+      break;
+
+    default:
+      // Default to weekly
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+  }
+
+  return ranges;
+};
+
+// Helper function to group transactions by period for line chart
+const groupTransactionsByPeriod = (transactions, dateRange, period) => {
+  const groupedData = {};
+
+  // Initialize all periods with 0
+  dateRange.forEach(date => {
+    const key = period === 'yearly'
+      ? new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : date;
+    groupedData[key] = { income: 0, expense: 0 };
+  });
+
+  // Sum up transactions for each period
+  transactions.forEach(transaction => {
+    const transactionDate = new Date(transaction.date);
+    let periodKey;
+
+    if (period === 'yearly') {
+      // Group by month-year for yearly view
+      periodKey = transactionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    } else {
+      // For weekly and monthly, use the exact date for grouping
+      periodKey = transaction.date;
+    }
+
+    if (groupedData[periodKey]) {
+      if (transaction.type === 'income') {
+        groupedData[periodKey].income += Number(transaction.amount);
+      } else {
+        groupedData[periodKey].expense += Number(transaction.amount);
+      }
+    }
+  });
+
+  return groupedData;
+};
+
 export default function Income() {
   const [inc_source, setInc_source] = useState("");
   const [amount, setAmount] = useState("");
@@ -22,9 +121,9 @@ export default function Income() {
   const [isModalOpen, setIsModalOpen] = useState(false); // Pop-up form / modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Pop-up form / modal
   const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState(null);
+  const [timePeriod, setTimePeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
 
   const [barChartData, setBarChartData] = useState({
     labels: [],
@@ -37,6 +136,13 @@ export default function Income() {
   });
 
   const [refreshKey, setRefreshKey] = useState(0); // Used for forcing component re-render
+
+  // Time period options
+  const timePeriods = [
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' }
+  ];
 
   const handleEditSubmit = async (values) => {
     toast.loading("Updating income...");
@@ -218,52 +324,47 @@ export default function Income() {
     }
   }, [transactions]); // Re-run when transactions change
 
-  // INFO: Data for line chart
+  // INFO: Data for line chart - Updated to use time period
   useEffect(() => {
-    const getLast7Days = () => {
-      const days = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        days.push(d.toISOString().split("T")[0]); // YYYY-MM-DD
-      }
-      return days;
-    };
+    const dateRange = getDateRange(timePeriod);
+    const groupedData = groupTransactionsByPeriod(transactions, dateRange, timePeriod);
 
-    const last7Days = getLast7Days();
+    const incomePerPeriod = dateRange.map(date => {
+      const key = timePeriod === 'yearly'
+        ? new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        : date;
+      return groupedData[key]?.income || 0;
+    });
 
-    const incomePerDay = last7Days.map((day) =>
-      transactions
-        .filter((t) => t.type === "income" && t.date.startsWith(day))
-        .reduce((sum, t) => sum + Number(t.amount), 0)
-    );
+    const expensePerPeriod = dateRange.map(date => {
+      const key = timePeriod === 'yearly'
+        ? new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        : date;
+      return groupedData[key]?.expense || 0;
+    });
 
-    const expensePerDay = last7Days.map((day) =>
-      transactions
-        .filter((t) => t.type === "expense" && t.date.startsWith(day))
-        .reduce((sum, t) => sum + Number(t.amount), 0)
-    );
+    const lineLabels = dateRange.map(date => formatDateLabel(date, timePeriod));
 
     setLineData({
-      labels: last7Days,
+      labels: lineLabels,
       datasets: [
         {
           label: "Income",
-          data: incomePerDay,
+          data: incomePerPeriod,
           borderColor: "#4ade80",
           backgroundColor: "rgba(74, 222, 128, 0.2)",
           tension: 0.4,
         },
         {
           label: "Expenses",
-          data: expensePerDay,
+          data: expensePerPeriod,
           borderColor: "#f87171",
           backgroundColor: "rgba(248, 113, 113, 0.2)",
           tension: 0.4,
         },
       ],
     });
-  }, [transactions]);
+  }, [transactions, timePeriod]);
 
   return (
     <>
@@ -275,20 +376,98 @@ export default function Income() {
         <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`}`}>
           <div className="flex items-center justify-center mt-6">
             <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
-              <div className="w-full flex items-center justify-between">
+
+              {/* Time Period Selector */}
+              <div className="flex justify-center mb-6">
+                <div className="bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+                  {timePeriods.map((period) => (
+                    <button
+                      key={period.value}
+                      onClick={() => setTimePeriod(period.value)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full flex flex-col lg:flex-row items-center justify-between gap-4">
                 {/* Bar Chart */}
-                <div className="w-[400px] md:w-[500px] p-4 flex-1">
-                  <Bar data={barChartData} />
-                  <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Bar chart </p>
+                <div className="w-full lg:w-1/2 p-4">
+                  <Bar
+                    data={barChartData}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: {
+                          position: 'top',
+                        },
+                        title: {
+                          display: true,
+                          text: 'Income Sources'
+                        }
+                      },
+                      scales: {
+                        x: {
+                          grid: {
+                            display: false
+                          }
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                          }
+                        }
+                      }
+                    }}
+                  />
+                  <p className="text-gray-600 text-xs text-center font-medium w-full h-full">Income Sources</p>
                 </div>
 
                 {/* Line Chart */}
-                {/* <div className="w-[400px] md:w-[700px] p-4 flex-1"> */}
-                {/*   <Line data={lineData} /> */}
-                {/*   <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Line chart </p> */}
-                {/* </div> */}
+                <div className="w-full lg:w-1/2 p-4">
+                  <Line
+                    data={lineData}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: {
+                          position: 'top',
+                        },
+                        title: {
+                          display: true,
+                          text: `${timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Income vs Expenses`
+                        }
+                      },
+                      scales: {
+                        x: {
+                          grid: {
+                            display: false
+                          }
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                          }
+                        }
+                      }
+                    }}
+                  />
+                  <p className="text-gray-600 text-xs text-center font-medium w-full h-full">
+                    {timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Trend
+                  </p>
+                </div>
               </div>
-              <p className="text-gray-600 text-[15px] text-center font-medium">Weekly Spending Trend</p>
+
+              <p className="text-gray-600 text-[15px] text-center font-medium">
+                {timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Financial Overview
+              </p>
             </div>
           </div>
 

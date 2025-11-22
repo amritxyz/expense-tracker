@@ -34,13 +34,113 @@ const createCenterTextPlugin = (centerText) => ({
   }
 });
 
+// Helper function to format dates based on time period
+const formatDateLabel = (dateString, period) => {
+  const date = new Date(dateString);
+
+  switch (period) {
+    case 'weekly':
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    case 'monthly':
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    case 'yearly':
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    default:
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+};
+
+// Helper function to get date ranges based on time period
+const getDateRange = (period) => {
+  const today = new Date();
+  const ranges = [];
+
+  switch (period) {
+    case 'weekly':
+      // Last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+      break;
+
+    case 'monthly':
+      // Last 30 days
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+      break;
+
+    case 'yearly':
+      // Last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        d.setDate(1); // First day of month for grouping
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+      break;
+
+    default:
+      // Default to weekly
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        ranges.push(d.toISOString().split("T")[0]);
+      }
+  }
+
+  return ranges;
+};
+
+// Helper function to group transactions by period
+const groupTransactionsByPeriod = (transactions, dateRange, period) => {
+  const groupedData = {};
+
+  // Initialize all periods with 0
+  dateRange.forEach(date => {
+    const key = period === 'yearly'
+      ? new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : date;
+    groupedData[key] = { income: 0, expense: 0 };
+  });
+
+  // Sum up transactions for each period
+  transactions.forEach(transaction => {
+    const transactionDate = new Date(transaction.date);
+    let periodKey;
+
+    if (period === 'yearly') {
+      // Group by month-year for yearly view
+      periodKey = transactionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    } else {
+      // For weekly and monthly, use the exact date for grouping
+      periodKey = transaction.date;
+    }
+
+    if (groupedData[periodKey]) {
+      if (transaction.type === 'income') {
+        groupedData[periodKey].income += Number(transaction.amount);
+      } else {
+        groupedData[periodKey].expense += Number(transaction.amount);
+      }
+    }
+  });
+
+  return groupedData;
+};
+
 export default function Recent() {
   const [transactions, setTransactions] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState(null); // Track the selected transaction ID for deletion
-  const [selectedTransaction, setSelectedTransaction] = useState(null); // Track the selected transaction details for editing
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // Edit Modal
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [timePeriod, setTimePeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
 
   const selectedItem = transactions.find(t => t.id === selectedItemId);
 
@@ -58,7 +158,7 @@ export default function Recent() {
       if (!token) {
         toast.dismiss();
         toast.error("No token found. Please log in.");
-        return; // Exit if there's no token
+        return;
       }
 
       const endPoint = type === "income" ? `http://localhost:5000/income/${id}` : `http://localhost:5000/expenses/${id}`;
@@ -75,7 +175,7 @@ export default function Recent() {
         setTransactions((prevTransactions) =>
           prevTransactions.filter((transaction) => transaction.id !== id)
         );
-        setIsDeleteModalOpen(false); // Close modal after deleting
+        setIsDeleteModalOpen(false);
       } else {
         toast.dismiss();
         toast.error(data.message || "Failed to delete the transaction.");
@@ -112,7 +212,7 @@ export default function Recent() {
         setTransactions(all);
       })
       .catch((err) => console.error("Error fetching transactions:", err));
-  }, []);
+  }, [refreshKey]);
 
   // Chart data for doughnut chart
   const totalIncome = transactions
@@ -131,11 +231,7 @@ export default function Recent() {
   if (incomeLeft < 0)
     incomeLeft = 0;
 
-  // Compute center text
-  // In your component
   const centerText = ` Rs ${incomeLeft.toFixed(2)} `
-
-  // Get plugin instance
   const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);
 
   const doughnutData = {
@@ -149,42 +245,37 @@ export default function Recent() {
     ],
   };
 
-  // Bar chart data for weekly spending trend
-  const getLast7Days = () => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(d.toISOString().split("T")[0]); // YYYY-MM-DD
-    }
-    return days;
-  };
+  // Bar chart data based on selected time period
+  const dateRange = getDateRange(timePeriod);
+  const groupedData = groupTransactionsByPeriod(transactions, dateRange, timePeriod);
 
-  const last7Days = getLast7Days();
+  const incomePerPeriod = dateRange.map(date => {
+    const key = timePeriod === 'yearly'
+      ? new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : date;
+    return groupedData[key]?.income || 0;
+  });
 
-  const incomePerDay = last7Days.map((day) =>
-    transactions
-      .filter((t) => t.type === "income" && t.date.startsWith(day))
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-  );
+  const expensePerPeriod = dateRange.map(date => {
+    const key = timePeriod === 'yearly'
+      ? new Date(date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : date;
+    return groupedData[key]?.expense || 0;
+  });
 
-  const expensePerDay = last7Days.map((day) =>
-    transactions
-      .filter((t) => t.type === "expense" && t.date.startsWith(day))
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-  );
+  const barLabels = dateRange.map(date => formatDateLabel(date, timePeriod));
 
   const barData = {
-    labels: last7Days,
+    labels: barLabels,
     datasets: [
       {
         label: "Income",
-        data: incomePerDay,
+        data: incomePerPeriod,
         backgroundColor: "#4ade80",
       },
       {
         label: "Expenses",
-        data: expensePerDay,
+        data: expensePerPeriod,
         backgroundColor: "#f87171",
       },
     ],
@@ -198,13 +289,11 @@ export default function Recent() {
     try {
       const token = localStorage.getItem("token");
 
-      // Determine if it's income or expense
       const isIncome = selectedTransaction.type === "income";
       const endPoint = isIncome
         ? `http://localhost:5000/income/${selectedItemId}`
         : `http://localhost:5000/expenses/${selectedItemId}`;
 
-      // Prepare the data based on transaction type
       let updateData;
       if (isIncome) {
         updateData = {
@@ -236,13 +325,12 @@ export default function Recent() {
         toast.dismiss();
         toast.success(`${selectedTransaction.type.charAt(0).toUpperCase() + selectedTransaction.type.slice(1)} updated successfully.`);
 
-        // Update the transactions state with the new data
         setTransactions((prevTransactions) =>
           prevTransactions.map((item) =>
             item.id === selectedItemId ? { ...item, ...updateData } : item
           )
         );
-        setRefreshKey((prevKey) => prevKey + 1); // Trigger re-render
+        setRefreshKey((prevKey) => prevKey + 1);
       } else {
         toast.dismiss();
         toast.error(data.message || `Failed to update the ${selectedTransaction.type}.`);
@@ -254,12 +342,18 @@ export default function Recent() {
     }
   };
 
-  // Separate functions for opening edit modal
   const openEditModal = (item) => {
     setSelectedTransaction(item);
     setSelectedItemId(item.id);
     setIsEditModalOpen(true);
   };
+
+  // Time period options
+  const timePeriods = [
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' }
+  ];
 
   return (
     <section className="flex flex-col items-center space-y-6 ">
@@ -282,7 +376,7 @@ export default function Recent() {
           <div className="border border-gray-300 rounded-2xl p-4 bg-gradient-to-r from-green-50 to-teal-50">
             <p className="text-gray-600 text-sm font-medium">Budget Left</p>
             <p className="text-lg font-bold text-green-600 mt-1">
-              {isNaN(percentageBudget) || "Infinity" ? "Nil" : Math.round(percentageBudget)} %
+              {isNaN(percentageBudget) || percentageBudget === Infinity ? "Nil" : Math.round(percentageBudget)} %
             </p>
           </div>
         </div>
@@ -290,53 +384,84 @@ export default function Recent() {
 
       {/* Doughnut and Bar Charts */}
       <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
+        {/* Time Period Selector */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+            {timePeriods.map((period) => (
+              <button
+                key={period.value}
+                onClick={() => setTimePeriod(period.value)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="2xl:flex 2xl:flex-row xl:flex xl:flex-row sm:flex sm:flex-col flex flex-col items-center justify-between xl:flex-1 lg:flex lg:flex-col lg:flex-1">
           {/* Doughnut Chart */}
           <div className="w-[300px] 2xl:w-[350px] xl:w-[360px] xl:flex-1 lg:w-[400px] p-4 2xl:flex-1 3xl:flex-1">
-            {/* <Doughnut data={doughnutData} /> */}
-
             <Doughnut
               key={centerText}
               data={doughnutData}
               plugins={[centerTextPlugin]}
               options={{
                 cutout: '70%',
-                onClick: (event, elements) => {
-                  if (elements.length > 0) {
-                    const index = elements[0].index;
-                    const clickedLabel = doughnutData.labels[index];
-
-                    if (drilldown.level === 'category') {
-                      // Drill down to subcategories
-                      setDrilldown({
-                        level: 'subcategory',
-                        parentCategory: clickedLabel
-                      });
-                    }
-                    // Optionally: ignore click on subcategory level (or go deeper if needed)
-                  }
-                },
                 plugins: {
                   legend: { display: true },
                   tooltip: { enabled: true }
                 }
               }}
             />
-            <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Doughnut chart </p>
+            <p className="text-gray-600 text-xs text-center font-medium w-full h-full">Doughnut chart</p>
           </div>
+
           {/* Bar Chart */}
           <div className="w-[500px] 2xl:w-[800px] xl:w-[650px] xl:flex-2 lg:w-[800px] sm:w-[600px] p-4 2xl:flex-2 3xl:flex-1">
-            <Bar data={barData} />
-            <p className="text-gray-600 text-xs text-center font-medium w-full h-full "> Bar chart </p>
+            <Bar
+              data={barData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  },
+                  title: {
+                    display: true,
+                    text: `${timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Spending Trend`
+                  }
+                },
+                scales: {
+                  x: {
+                    grid: {
+                      display: false
+                    }
+                  },
+                  y: {
+                    beginAtZero: true,
+                    grid: {
+                      color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                  }
+                }
+              }}
+            />
+            <p className="text-gray-600 text-xs text-center font-medium w-full h-full">Bar chart - {timePeriod} view</p>
           </div>
         </div>
-        <p className="text-gray-600 text-[15px] text-center font-medium">Weekly Spending Trend</p>
+        <p className="text-gray-600 text-[15px] text-center font-medium">
+          {timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)} Spending Trend
+        </p>
       </div>
 
       {/* Recent Transactions */}
       <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
         <div className="flex items-center justify-between text-center">
-          <p className="text-gray-900 font-semibold ">Recent Transactions</p>
+          <p className="text-gray-900 font-semibold">Recent Transactions</p>
           <button
             onClick={() => navigate("/dashboard/expense")}
             className="px-6 py-3 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-x-1 group cursor-pointer"
@@ -389,15 +514,12 @@ export default function Recent() {
                     Rs. {item.amount}
                   </span>
                 </div>
-
               </div>
-
-              {/* Action Buttons Section (Edit & Delete) */}
             </div>
           ))}
         </div>
 
-        {/* Edit Modal - Single modal for both income and expense */}
+        {/* Edit Modal */}
         <TransactionModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
@@ -420,7 +542,7 @@ export default function Recent() {
           transactionType={selectedTransaction?.type || "expense"}
         />
 
-        {/* Modal - Delete modal */}
+        {/* Delete Modal */}
         <DeleteModal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
@@ -437,7 +559,6 @@ export default function Recent() {
           }
           itemType={selectedItem?.type || 'transaction'}
         />
-
       </div>
       <ToastContainer />
     </section>
