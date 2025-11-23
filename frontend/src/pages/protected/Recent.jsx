@@ -52,7 +52,6 @@ const formatDateLabel = (dateString, period) => {
 
 // Helper function to get date ranges based on time period
 const getDateRange = (period) => {
-  const today = new Date();
   const ranges = [];
 
   switch (period) {

@@ -63,7 +63,6 @@ const formatDateLabel = (dateString, period) => {
 
 // Helper function to get date ranges based on time period
 const getDateRange = (period) => {
-  const today = new Date();
   const ranges = [];
 
   switch (period) {
@@ -576,7 +575,7 @@ export default function Expense() {
                     plugins={[centerTextPlugin]}
                     options={{
                       cutout: '70%',
-                      onClick: (event, elements) => {
+                      onClick: (_, elements) => {
                         if (elements.length > 0) {
                           const index = elements[0].index;
                           const clickedLabel = doughnutData.labels[index];

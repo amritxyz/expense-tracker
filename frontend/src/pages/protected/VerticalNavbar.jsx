@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import * as icons from "../../assets/Icons.jsx";
 import LogoutModal from "../../components/modals/LogoutModal.jsx";
 import LogoutButton from "../../components/buttons/LogoutButton.jsx";
@@ -13,7 +13,6 @@ export default function VerticalNavbar() {
   ];
 
   const location = useLocation();
-  const navigate = useNavigate();
   const [isLogoutModelOpen, setIsLogoutModelOpen] = useState(false);
 
   return (
