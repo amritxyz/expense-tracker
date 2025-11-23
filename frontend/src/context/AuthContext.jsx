@@ -1,37 +1,88 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // npm install jwt-decode
 
 // Create the context
 export const AuthContext = createContext();
 
-// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };
 
-// Auth Provider component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLogged, setIsLogged] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Check if user is already logged in
+  // Helper: Check if token is expired or invalid
+  const isTokenExpired = (token) => {
+    if (!token) return true;
+    try {
+      const decoded = jwtDecode(token);
+      if (!decoded.exp) return false; // no exp claim = assume valid (not recommended)
+      return decoded.exp * 1000 < Date.now(); // exp is in seconds
+    } catch (err) {
+      console.warn('Invalid JWT format', err);
+      return true;
+    }
+  };
+
+  // Logout function (centralized)
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setIsLogged(false);
+    setError(null);
+    // Optional: redirect
+    // window.location.href = '/login';
+  };
+
+  // Check auth state on mount
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
+
+    if (token && !isTokenExpired(token)) {
       try {
-        const decoded = JSON.parse(atob(token.split('.')[1])); // Decode the JWT (just to extract user data)
+        const decoded = jwtDecode(token);
         setUser({ email: decoded.email, id: decoded.id });
         setIsLogged(true);
-      } catch (error) {
-        console.error('Invalid token', error);
-        setUser(null);
+      } catch (err) {
+        console.error('Failed to decode token', err);
+        logout();
       }
+    } else {
+      // Token missing or expired → clean up
+      logout();
     }
     setLoading(false);
+  }, []);
+
+  // Axios Interceptor: Catch 401 globally
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          console.warn('Unauthorized - logging out');
+          logout();
+          // Optional: redirect only if not already on login page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login?expired=1';
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
   }, []);
 
   // Login function
@@ -43,19 +94,14 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      const token = response.data.token;  // Assuming we return the JWT in the response
-
-      /* INFO: Save the token to localStorage */
+      const token = response.data.token;
       localStorage.setItem('token', token);
 
-      /* INFO: Decode the token to extract user info (or we can store user details directly in the token) */
-      const decoded = JSON.parse(atob(token.split('.')[1])); // Decode JWT
-
+      const decoded = jwtDecode(token);
       setUser({ email: decoded.email, id: decoded.id });
-
       setIsLogged(true);
 
-      return { success: true, message: response.data.message };
+      return { success: true, message: response.data.message || 'Login successful' };
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Login failed';
       setError(errorMessage);
@@ -72,7 +118,7 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
       });
-      return { success: true, message: response.data.message };
+      return { success: true, message: response.data.message || 'Registered successfully' };
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Registration failed';
       setError(errorMessage);
@@ -80,31 +126,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    setIsLogged(false);
+  // Optional: Manual token validation (call from protected components if needed)
+  const validateToken = () => {
+    const token = localStorage.getItem('token');
+    if (!token || isTokenExpired(token)) {
+      logout();
+      return false;
+    }
+    return true;
   };
 
-  // Value object for the context
   const value = {
     user,
-    setUser,
+    isLogged,
+    loading,
+    error,
     login,
     register,
     logout,
-    loading,
-    setLoading,
-    error,
-    setError,
-    isLogged,
-    setIsLogged,
+    validateToken,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {!loading ? children : <div>Loading...</div>}
     </AuthContext.Provider>
   );
 };
