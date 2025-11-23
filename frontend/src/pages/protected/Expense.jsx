@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import VerticalNavbar from "./VerticalNavbar";
 import { ToastContainer, toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+
+// Navbar (horizontal and vertical)
+import VerticalNavbar from "./VerticalNavbar";
+import HorizontalNavbar from "./HorizontalNavbar";
 
 // Button components
 import DeleteButton from "../../components/buttons/DeleteButton";
@@ -536,7 +539,11 @@ export default function Expense() {
           <VerticalNavbar />
         </div>
 
-        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`} `}>
+        <div className="block lg:hidden">
+          <HorizontalNavbar />
+        </div>
+
+        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col min-h-screen h-full`}>
           <Warning data={{ totalBudget, totalIncome, totalExpense }} />
           <div className={`flex items-center justify-center ${totalBudget >= 0 ? "mt-6" : ""}`}>
             <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
@@ -549,8 +556,8 @@ export default function Expense() {
                       key={period.value}
                       onClick={() => setTimePeriod(period.value)}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        ? 'bg-gradient-to-tr from-red-500 to-red-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:cursor-pointer hover:text-gray-700 hover:scale-105'
                         }`}
                     >
                       {period.label}
@@ -563,6 +570,7 @@ export default function Expense() {
                 {/* Doughnut Chart */}
                 <div className="w-[350px] p-4 2xl:w-[400px] xl:w-[100px] sm:w-[350px] md:w-[400px] flex-1 ">
                   <Doughnut
+                    className="transition-all "
                     key={centerText}
                     data={doughnutData}
                     plugins={[centerTextPlugin]}
@@ -703,9 +711,9 @@ export default function Expense() {
 
                 <button
                   onClick={handleAddExpenseClick}
-                  className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+                  className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 transition-all group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   Add Expense
@@ -724,7 +732,7 @@ export default function Expense() {
                       <div className="flex flex-1 items-center">
                         {/* Category */}
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900 capitalize">
+                          <p className="font-medium text-gray-900 capitalize">expense
                             {item.categories}
                           </p>
                         </div>

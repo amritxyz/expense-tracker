@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import VerticalNavbar from "./VerticalNavbar";
 import { ToastContainer, toast } from "react-toastify";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+
+// Navbar (horizontal and vertical)
+import VerticalNavbar from "./VerticalNavbar";
+import HorizontalNavbar from "./HorizontalNavbar";
 
 import EditButton from "../../components/buttons/EditButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
@@ -373,9 +376,13 @@ export default function Income() {
           <VerticalNavbar />
         </div>
 
-        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`}`}>
+        <div className="block lg:hidden">
+          <HorizontalNavbar />
+        </div>
+
+        <div className={`2xl:ml-64 lg:ml-28 gap-y-6 flex flex-col min-h-screen h-full`}>
           <div className="flex items-center justify-center mt-6">
-            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
+            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50">
 
               {/* Time Period Selector */}
               <div className="flex justify-center mb-6">
@@ -385,8 +392,8 @@ export default function Income() {
                       key={period.value}
                       onClick={() => setTimePeriod(period.value)}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        ? 'bg-gradient-to-tr from-green-500 to-green-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:cursor-pointer hover:text-gray-700 hover:scale-105'
                         }`}
                     >
                       {period.label}
@@ -516,9 +523,9 @@ export default function Income() {
 
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                  className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 group hover:scale-102"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 transition-all group-hover:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                   Add Income

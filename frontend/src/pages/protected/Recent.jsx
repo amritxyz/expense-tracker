@@ -238,8 +238,14 @@ export default function Recent() {
     labels: ["Income left", "Total Expense"],
     datasets: [
       {
-        data: [incomeLeft, totalExpense],
-        backgroundColor: ["#4ade80", "#f87171"],
+        data: [
+          incomeLeft || 0,
+          totalExpense || 0,
+        ],
+        backgroundColor: [
+          incomeLeft ? "#4ade80" : "#ddd",
+          totalExpense ? "#f87171" : "#ddd",
+        ],
         borderWidth: 1,
       },
     ],
@@ -392,8 +398,8 @@ export default function Recent() {
                 key={period.value}
                 onClick={() => setTimePeriod(period.value)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-gradient-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:cursor-pointer hover:text-gray-700 hover:scale-105'
                   }`}
               >
                 {period.label}
@@ -468,7 +474,7 @@ export default function Recent() {
           >
             See More
             <svg
-              className="transition-transform transform group-hover:translate-x-1"
+              className="transition-transform transform group-hover:translate-x-1 duration-300"
               xmlns="http://www.w3.org/2000/svg"
               width={20}
               height={20}

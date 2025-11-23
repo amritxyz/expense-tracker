@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
 
 import VerticalNavbar from "./VerticalNavbar"
+import HorizontalNavbar from "./HorizontalNavbar";
 
 export default function Profile() {
   // Mock user data — replace with API call in real app
@@ -118,10 +119,14 @@ export default function Profile() {
   return (
     <>
       <div className="bg-blue-50">
-        <div className="fixed w-28 2xl:w-64 hidden md:block p-5 shadow-current/20 shadow-xl bg-blue-50">
+        <div className="fixed w-28 2xl:w-64 hidden lg:block p-5 shadow-current/20 shadow-xl bg-blue-50">
           <VerticalNavbar />
         </div>
-        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col ${`h-screen` ? `h-screen` : `h-full`} `}>
+        <div className="block lg:hidden">
+          <HorizontalNavbar />
+        </div>
+
+        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col min-h-screen h-full`}>
           <div className={`flex items-center justify-center h-screen`}>
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200 w-[50%]">
               <div className="flex flex-col items-center mb-6">
