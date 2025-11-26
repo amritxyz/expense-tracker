@@ -1,36 +1,72 @@
 export default function Footer() {
   return (
-    <>
-      <footer id="footer" className="py-12 bg-gray-900 text-gray-300 w-[100%] flex flex-col items-center justify-center">
-        <div className="w-95/100">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          </div>
-          <div className="w-[100%] flex md-flex-row justify-between items-center">
-            <p className="text-sm">© 2025 ExpenseTracker. All rights reserved.</p>
-            <ul className="space-y-2 text-sm flex gap-5">
-              <li>
-                <a href="#footer" className="hover-text-white">Terms of Service</a>
-              </li>
-              <li>
-                <a href="#footer" className="hover-text-white">Privacy Policy</a>
-              </li>
-              <li>
-                <a href="#footer" className="hover-text-white">Cookie Policy</a>
-              </li>
-            </ul>
-            <div className="flex gap-4 mt-4 md:mt-0">
-              <a href='#footer' className="hover:text-white ">Facebook
+    <footer className="w-full bg-gray-900 text-gray-300">
+      <div className="container mx-auto px-4 py-12">
+        {/* Bottom section */}
+        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-6 text-sm">
+          {/* Copyright */}
+          <p>© 2025 ExpenseTracker. All rights reserved.</p>
+
+          {/* Legal Links */}
+          <ul className="flex flex-wrap justify-center gap-6">
+            <li>
+              <a href="/terms" className="hover:text-white transition-colors">
+                Terms of Service
               </a>
-              <a href='#footer' className="hover:text-white">Twitter
+            </li>
+            <li>
+              <a href="/privacy" className="hover:text-white transition-colors">
+                Privacy Policy
               </a>
-              <a href='#footer' className="hover:text-white">Instagram
+            </li>
+            <li>
+              <a href="/cookies" className="hover:text-white transition-colors">
+                Cookie Policy
               </a>
-              <a href='#footer' className="hover:text-white">LinkedIn
-              </a>
-            </div>
+            </li>
+          </ul>
+
+          {/* Social Links */}
+          <div className="flex gap-6">
+            <a
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+              aria-label="Facebook"
+            >
+              Facebook
+            </a>
+            <a
+              href="https://twitter.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+              aria-label="Twitter"
+            >
+              Twitter
+            </a>
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+              aria-label="Instagram"
+            >
+              Instagram
+            </a>
+            <a
+              href="https://linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+              aria-label="LinkedIn"
+            >
+              LinkedIn
+            </a>
           </div>
         </div>
-      </footer>
-    </>
+      </div>
+    </footer>
   );
 }
