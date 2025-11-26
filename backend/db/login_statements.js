@@ -22,7 +22,7 @@ const extra_attr = 'created_at';
 const attributes = `
   ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
   ${second_attr}  TEXT NOT NULL,
-  ${third_attr}  TEXT NOT NULL,
+  ${third_attr}  TEXT NOT NULL UNIQUE,
   ${last_attr}    TEXT NOT NULL,
   ${extra_attr}   DATETIME DEFAULT CURRENT_TIMESTAMP
 `;

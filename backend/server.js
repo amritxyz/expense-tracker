@@ -50,6 +50,11 @@ app.post('/register', (req, res) => {
     insert_user(user_name, email, password);
     res.status(200).json({ message: 'User registered successfully' });
   } catch (err) {
+    if (err.message.includes('UNIQUE constraint failed') || err.code === 'SQLITE_CONSTRAINT') {
+      return res.status(409).json({
+        message: 'This email is already registered. Please use a different email or login.'
+      });
+    }
     res.status(500).json({ message: 'Error registering user', error: err.message });
   }
 });
