@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { useLocation } from 'react-router-dom';
 
 export default function TransactionModal({
   isOpen,
@@ -14,8 +13,6 @@ export default function TransactionModal({
   title // Optional override
 }) {
   if (!isOpen) return null;
-
-  const location = useLocation();
 
   // Dynamic validation schema
   const validationSchema = Yup.object().shape({
@@ -176,7 +173,7 @@ export default function TransactionModal({
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting, setFieldValue }) => (
+          {({ setFieldValue }) => (
             <Form>
               {/* Amount */}
               <div className="mb-5">
@@ -310,7 +307,6 @@ export default function TransactionModal({
                 {transactionType == "expense" ? (
                   <button
                     type="submit"
-                    disabled={isSubmitting}
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 hover:scale-102"
                   >
                     {modalType === 'edit' ? 'Save Changes' : 'Add'}
@@ -318,7 +314,6 @@ export default function TransactionModal({
                 ) : (
                   <button
                     type="submit"
-                    disabled={isSubmitting}
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 hover:scale-102"
                   >
                     {modalType === 'edit' ? 'Save Changes' : 'Add'}
