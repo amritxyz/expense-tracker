@@ -176,8 +176,8 @@ export default function ProfileSection() {
 
   return (
     <>
-      <div className="from-blue-50 to-indigo-50 min-h-screen">
-        <div className="fixed w-28 2xl:w-64 hidden lg:block p-5 shadow-lg bg-white/80 backdrop-blur-sm">
+      <div className="min-h-screen">
+        <div className="fixed w-28 2xl:w-64 hidden lg:block p-5 shadow-current/20 shadow-xl bg-blue-50">
           <VerticalNavbar />
         </div>
 
@@ -189,7 +189,7 @@ export default function ProfileSection() {
           <div className="w-[95%] max-w-6xl">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 My Profile
               </h1>
               <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
@@ -207,7 +207,7 @@ export default function ProfileSection() {
                         className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
                       />
                     ) : (
-                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+                      <div className="w-32 h-32 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
                         {getInitials(user.user_name)}
                       </div>
                     )}
@@ -281,7 +281,7 @@ export default function ProfileSection() {
                     <button
                       type="submit"
                       disabled={formik.isSubmitting || !formik.dirty}
-                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-blue-500/25"
+                      className="w-full py-3.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-101 transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-blue-500/25"
                     >
                       {formik.isSubmitting ? (
                         <span className="flex items-center justify-center">
@@ -346,14 +346,14 @@ export default function ProfileSection() {
                         <button
                           type="button"
                           onClick={() => { setIsChangingPassword(false); passwordFormik.resetForm(); }}
-                          className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium"
+                          className="flex-4 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition duration-300 cursor-pointer border border-gray-300 shadow-sm hover:scale-101"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={passwordFormik.isSubmitting}
-                          className="flex-1 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transform hover:scale-[1.02] transition-all duration-200 font-medium shadow-lg shadow-red-500/25"
+                          className="flex-5 py-3 bg-linear-to-r from-red-600 to-red-600 text-white rounded-xl hover:from-red-700 hover:to-red-700 transform hover:scale-101 transition duration-300 font-medium shadow-lg shadow-red-500/25"
                         >
                           {passwordFormik.isSubmitting ? "Updating..." : "Update Password"}
                         </button>
@@ -373,7 +373,7 @@ export default function ProfileSection() {
                 </div>
 
                 {/* Danger Zone */}
-                <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-8 transform hover:shadow-lg transition-all duration-300">
+                <div className="bg-linear-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-8 transform hover:shadow-lg transition-all duration-300">
                   <div className="flex items-center mb-4">
                     <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
                       <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,7 +385,7 @@ export default function ProfileSection() {
                   <p className="text-red-700 mb-6">Once you delete your account, there is no going back. Please be certain.</p>
                   <button
                     onClick={() => setShowDeleteModal(true)}
-                    className="px-8 py-3.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium shadow-lg shadow-red-500/25"
+                    className="px-8 py-3.5 bg-linear-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-101 transition-all duration-200 font-medium shadow-lg shadow-red-500/25"
                   >
                     Delete Account
                   </button>
@@ -414,7 +414,7 @@ export default function ProfileSection() {
                     <button
                       onClick={handleDelete}
                       disabled={isDeleting}
-                      className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium disabled:opacity-70 disabled:hover:scale-100"
+                      className="flex-1 py-3 bg-linear-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium disabled:opacity-70 disabled:hover:scale-100"
                     >
                       {isDeleting ? (
                         <span className="flex items-center justify-center">

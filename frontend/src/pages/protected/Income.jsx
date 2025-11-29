@@ -382,7 +382,7 @@ export default function Income() {
 
         <div className={`2xl:ml-64 lg:ml-28 gap-y-6 flex flex-col min-h-screen h-full`}>
           <div className="flex items-center justify-center mt-6">
-            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-indigo-50 to-purple-50">
 
               {/* Time Period Selector */}
               <div className="flex justify-center mb-6">
@@ -392,7 +392,7 @@ export default function Income() {
                       key={period.value}
                       onClick={() => setTimePeriod(period.value)}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
-                        ? 'bg-gradient-to-tr from-green-500 to-green-600 text-white shadow-sm'
+                        ? 'bg-linear-to-tr from-green-500 to-green-600 text-white shadow-sm'
                         : 'text-gray-600 hover:cursor-pointer hover:text-gray-700 hover:scale-105'
                         }`}
                     >
@@ -517,13 +517,13 @@ export default function Income() {
           />
 
           <div className="w-full flex items-center justify-center ">
-            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
+            <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-gray-50 to-white">
               <div className="flex items-center justify-between text-center">
                 <p className="text-gray-900 font-semibold ">Recent Income</p>
 
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 group hover:scale-102"
+                  className="px-4 py-3 bg-linear-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 group hover:scale-102"
                 >
                   <svg className="w-5 h-5 transition-all duration-500 group-hover:scale-125 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
@@ -557,7 +557,7 @@ export default function Income() {
                         </div>
 
                         {/* Actions + Amount */}
-                        <div className="flex items-center space-x-2 flex-shrink-0">
+                        <div className="flex items-center space-x-2 shrink-0">
                           <EditButton
                             onClick={() => {
                               setSelectedIncome(item);

@@ -545,7 +545,7 @@ export default function Expense() {
         <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col min-h-screen h-full`}>
           <Warning data={{ totalBudget, totalIncome, totalExpense }} />
           <div className={`flex items-center justify-center ${totalBudget >= 0 ? "mt-6" : ""}`}>
-            <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
+            <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-linear-to-r from-indigo-50 to-purple-50 ">
 
               {/* Time Period Selector */}
               <div className="flex justify-center mb-6">
@@ -555,7 +555,7 @@ export default function Expense() {
                       key={period.value}
                       onClick={() => setTimePeriod(period.value)}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
-                        ? 'bg-gradient-to-tr from-red-500 to-red-600 text-white shadow-sm'
+                        ? 'bg-linear-to-tr from-red-500 to-red-600 text-white shadow-sm'
                         : 'text-gray-600 hover:cursor-pointer hover:text-gray-700 hover:scale-105'
                         }`}
                     >
@@ -703,13 +703,13 @@ export default function Expense() {
           />
 
           <div className="w-full flex items-center justify-center">
-            <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white mb-9">
+            <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-linear-to-r from-gray-50 to-white mb-9">
               <div className="flex items-center justify-between text-center">
                 <p className="text-gray-900 font-semibold ">Recent Expenses</p>
 
                 <button
                   onClick={handleAddExpenseClick}
-                  className="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102"
+                  className="px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102"
                 >
                   <svg className="w-5 h-5 transition-all duration-500 group-hover:scale-110 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

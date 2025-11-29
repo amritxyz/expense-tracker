@@ -366,7 +366,7 @@ export default function Recent() {
 
       {/* Available Balance */}
       <div className={`w-full flex items-center justify-center ${totalBudget >= 0 ? "mt-6" : ""} `}>
-        <div className="w-[90%] border border-gray-300 rounded-2xl p-5 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="w-[90%] border border-gray-300 rounded-2xl p-5 bg-linear-to-r from-blue-50 to-indigo-50">
           <p className="text-gray-600 text-sm font-medium">Available Balance</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">Rs {totalBudget}</p>
         </div>
@@ -374,11 +374,11 @@ export default function Recent() {
 
       <div className="w-full flex items-center justify-center">
         <div className="grid grid-cols-2 gap-4 w-[90%]">
-          <div className="border border-gray-300 rounded-2xl p-4 bg-gradient-to-r from-red-50 to-yellow-50">
+          <div className="border border-gray-300 rounded-2xl p-4 bg-linear-to-r from-red-50 to-yellow-50">
             <p className="text-gray-600 text-sm font-medium">Spent This Month</p>
             <p className="text-lg font-bold text-red-600 mt-1">Rs {totalExpense}</p>
           </div>
-          <div className="border border-gray-300 rounded-2xl p-4 bg-gradient-to-r from-green-50 to-teal-50">
+          <div className="border border-gray-300 rounded-2xl p-4 bg-linear-to-r from-green-50 to-teal-50">
             <p className="text-gray-600 text-sm font-medium">Budget Left</p>
             <p className="text-lg font-bold text-green-600 mt-1">
               {isNaN(percentageBudget) || percentageBudget === Infinity ? "Nil" : Math.round(percentageBudget)} %
@@ -388,7 +388,7 @@ export default function Recent() {
       </div>
 
       {/* Doughnut and Bar Charts */}
-      <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-indigo-50 to-purple-50 ">
+      <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-indigo-50 to-purple-50 ">
         {/* Time Period Selector */}
         <div className="flex justify-center mb-6">
           <div className="bg-white rounded-lg p-1 shadow-sm border border-gray-200">
@@ -397,7 +397,7 @@ export default function Recent() {
                 key={period.value}
                 onClick={() => setTimePeriod(period.value)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
-                  ? 'bg-gradient-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
+                  ? 'bg-linear-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
                   : 'text-gray-600 hover:cursor-pointer hover:text-gray-700 hover:scale-105'
                   }`}
               >
@@ -464,12 +464,12 @@ export default function Recent() {
       </div>
 
       {/* Recent Transactions */}
-      <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-gradient-to-r from-gray-50 to-white">
+      <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-gray-50 to-white">
         <div className="flex items-center justify-between text-center">
           <p className="text-gray-900 font-semibold">Recent Transactions</p>
           <button
             onClick={() => navigate("/dashboard/expense")}
-            className="px-6 py-3 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-x-1 group cursor-pointer"
+            className="px-6 py-3 text-white bg-linear-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-x-1 group cursor-pointer"
           >
             See More
             <svg
@@ -507,7 +507,7 @@ export default function Recent() {
                 </div>
 
                 {/* Right: Buttons + Amount */}
-                <div className="flex items-center space-x-2 flex-shrink-0">
+                <div className="flex items-center space-x-2 shrink-0">
                   <EditButton onClick={() => openEditModal(item)} />
                   <DeleteButton
                     onClick={() => {

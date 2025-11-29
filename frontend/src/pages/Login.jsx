@@ -56,10 +56,10 @@ export default function Login() {
         <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
           {/* Logo Section */}
           <button onClick={() => navigate("/")} className="flex gap-1.5 items-center justify-center my-5">
-            <div className='rounded-full h-8 w-8 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500'>
+            <div className='rounded-full h-8 w-8 flex items-center justify-center bg-linear-to-r from-blue-500 to-purple-500'>
               <span className='text-white font-bold text-sm'>ExT</span>
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-500 to-purple-500">
               ExpenseTracker
             </span>
           </button>
@@ -114,7 +114,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300"
+                    className="w-full py-2 px-4 bg-linear-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300"
                   >
                     {isSubmitting ? "Logging in..." : "Log In"}
                   </button>

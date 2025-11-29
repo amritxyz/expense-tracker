@@ -63,10 +63,10 @@ const Signup = () => {
           {/* Logo Section */}
           <Link className="flex gap-1.5 items-center my-5">
             <div className='rounded-full h-8 w-8 flex items-center justify-center
-             bg-gradient-to-r from-blue-500 to-purple-500'>
+             bg-linear-to-r from-blue-500 to-purple-500'>
               <span className='text-white font-bold text-sm'>ExT</span>
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-500 to-purple-500">
               ExpenseTracker
             </span>
           </Link>
@@ -137,7 +137,7 @@ const Signup = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:from-blue-600 hover:to-blue-700 transition duration-300"
+                  className="w-full bg-linear-to-r from-blue-500 to-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:from-blue-600 hover:to-blue-700 transition duration-300"
                 >
                   {isSubmitting ? 'Registering...' : 'Register'}
                 </button>

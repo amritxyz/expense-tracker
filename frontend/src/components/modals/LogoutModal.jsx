@@ -32,7 +32,7 @@ export default function LogoutModal({
   };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-[100] backdrop-blur-sm">
+    <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-100 backdrop-blur-sm">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-xl font-medium mb-3">{itemType}</h2>
         <hr className="border-gray-300 my-4" />
@@ -46,7 +46,7 @@ export default function LogoutModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-200 cursor-pointer border border-gray-300 shadow-sm"
+            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-300 cursor-pointer border border-gray-300 shadow-sm hover:scale-102"
           >
             Cancel
           </button>
@@ -54,7 +54,7 @@ export default function LogoutModal({
             type="button"
             onClick={handleConfirm}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 text-white font-medium bg-linear-to-r from-red-500 to-red-600 rounded-xl hover:from-red-600 hover:to-red-700 transition duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 hover:scale-102"
           >
             {isLoading ? (
               <>

@@ -17,10 +17,10 @@ export default function HorizontalNavbar() {
         <div className="container mx-auto px-4 flex items-center justify-between">
           {/* Logo */}
           <Link to="/#hero" className="flex items-center gap-2">
-            <div className="rounded-full h-8 w-8 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500">
+            <div className="rounded-full h-8 w-8 flex items-center justify-center bg-linear-to-r from-blue-500 to-purple-500">
               <span className="text-white font-bold text-sm">ExT</span>
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-500 to-purple-500">
               ExpenseTracker
             </span>
           </Link>
@@ -35,7 +35,7 @@ export default function HorizontalNavbar() {
             </Link>
             <Link
               to="/signup"
-              className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition shadow-md"
+              className="px-5 py-2 text-sm font-medium text-white bg-linear-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition shadow-md"
             >
               Sign Up
             </Link>
@@ -69,7 +69,7 @@ export default function HorizontalNavbar() {
                 <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-lg font-medium hover:bg-gray-100 rounded-lg">
                   Login
                 </Link>
-                <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-lg font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-center">
+                <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 text-lg font-medium text-white bg-linear-to-r from-blue-600 to-purple-600 rounded-lg text-center">
                   Sign Up
                 </Link>
               </div>
@@ -96,10 +96,10 @@ export default function HorizontalNavbar() {
         <div className="w-[90%] mx-auto px-4 flex items-center justify-between">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="rounded-full h-8 w-8 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500">
+            <div className="rounded-full h-8 w-8 flex items-center justify-center bg-linear-to-r from-blue-500 to-purple-500">
               <span className="text-white font-bold text-sm">ExT</span>
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-500 to-purple-500">
               ExpenseTracker
             </span>
           </Link>
@@ -112,7 +112,7 @@ export default function HorizontalNavbar() {
                 to={item.link}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg font-medium transition-all duration-200
                   ${isActive(item.link)
-                    ? "bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 shadow-sm"
+                    ? "bg-linear-to-r from-blue-100 to-purple-100 text-blue-800 shadow-sm"
                     : "text-gray-700 hover:bg-gray-100"
                   }`}
               >
@@ -164,7 +164,7 @@ export default function HorizontalNavbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-4 px-4 py-3 rounded-lg text-lg font-medium transition
                     ${isActive(item.link)
-                      ? "bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800"
+                      ? "bg-linear-to-r from-blue-100 to-purple-100 text-blue-800"
                       : "text-gray-700 hover:bg-gray-100"
                     }`}
                 >

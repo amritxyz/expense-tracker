@@ -20,10 +20,10 @@ export default function VerticalNavbar() {
       {/* Logo Section */}
       <div className="flex items-center gap-2 mb-9">
         <Link to="/dashboard" className="flex items-center 2xl:gap-2">
-          <div className="rounded-full h-10 w-10 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500">
+          <div className="rounded-full h-10 w-10 flex items-center justify-center bg-linear-to-r from-blue-500 to-purple-500">
             <span className="text-white font-bold text-sm">ExT</span>
           </div>
-          <span className="hidden 2xl:block text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
+          <span className="hidden 2xl:block text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-500 to-purple-500">
             ExpenseTracker
           </span>
         </Link>
@@ -43,9 +43,9 @@ export default function VerticalNavbar() {
             <Link
               key={value.id}
               to={value.link}
-              className={`flex items-center gap-4 font-medium text-lg hover:bg-current/5 w-10 2xl:w-full px-2 py-2 2xl:px-4 2xl:py-2 rounded-lg transition duration-200 ${location.pathname === value.link ? 'bg-gradient-to-r from-blue-200 to-purple-200 shadow-purple-100 shadow-lg text-blue-800' : 'text-gray-700 '}`}
+              className={`flex items-center gap-4 font-medium text-lg hover:bg-current/5 w-10 2xl:w-full px-2 py-2 2xl:px-4 2xl:py-2 rounded-lg transition duration-200 ${location.pathname === value.link ? 'bg-linear-to-r from-blue-200 to-purple-200 shadow-purple-100 shadow-lg text-blue-800 group/rotate' : 'text-gray-700 group/icons '}`}
             >
-              <span className={`${value.className} text-2xl 2xl:text-xl `}>
+              <span className={`${value.className} text-2xl 2xl:text-xl transition duration-300 group-hover/icons:scale-120 group-hover/rotate:rotate-12`}>
                 {value.icon()}
               </span>
               {/* Text label, hidden for screens >= 2xl */}
