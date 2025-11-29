@@ -150,5 +150,23 @@ function update_user_password_by_id(id, currentPassword, newPassword) {
   }
 }
 
+// Function to get user's profile data
+function get_user_profile_by_id(id) {
+  const userSql = `SELECT id, user_name, email, created_at FROM ${table_name} WHERE id = ?`;
+  const user = db.prepare(userSql).get(id);
+
+  if (!user) return null;
+
+  // Get avatar if exists
+  const avatarSql = `SELECT avatar_url FROM user_avatars WHERE user_id = ?`;
+  const avatar = db.prepare(avatarSql).get(id);
+
+  // Return full avatar URL including the server base URL
+  return {
+    ...user,
+    avatar: avatar ? `http://localhost:5000${avatar.avatar_url}` : null
+  };
+}
+
 // Exporting functions
-module.exports = { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id };
+module.exports = { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id, get_user_profile_by_id };

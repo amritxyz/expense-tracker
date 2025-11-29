@@ -9,9 +9,13 @@ const path = require('path');
 const dbPath = path.join(__dirname, './db/database.db');
 const db = new Database(dbPath, { verbose: console.log });
 
-const { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id } = require('./db/login_statements');
+const multer = require('multer')
+const fs = require('fs')
+
+const { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id, get_user_profile_by_id } = require('./db/login_statements');
 const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user, edit_expenses_by_user } = require('./db/expense');
 const { create_income_table, insert_income, get_income, get_income_by_user, edit_income_by_id } = require('./db/income');
+const { create_avatar_table, upsert_user_avatar, get_avatar_by_user_id, delete_user_avatar, avatarsDir } = require('./db/avatar');
 
 const app = express();
 
@@ -29,6 +33,7 @@ app.use(express.json());  // Parse JSON requests
 create_table();
 create_expense_table();
 create_income_table();
+create_avatar_table();
 
 // Function to generate JWT token
 function generateToken(user) {
@@ -260,7 +265,7 @@ app.delete('/income/:id', authenticateJWT, (req, res) => {
 
 // GET /profile — Get current user's profile
 app.get('/profile', authenticateJWT, (req, res) => {
-  const user = get_user_by_id(req.user.id);
+  const user = get_user_profile_by_id(req.user.id);
   if (!user) return res.status(404).json({ message: 'User not found' });
   res.json(user);
 });
@@ -284,37 +289,58 @@ app.put('/profile', authenticateJWT, (req, res) => {
 });
 
 // DELETE /profile — Delete current user's profile and all associated data (sequential approach)
-app.delete('/profile', authenticateJWT, async (req, res) => {
+app.delete('/profile', authenticateJWT, (req, res) => {
   const user_id = req.user.id;
 
   try {
-    // Delete expenses
-    const deleteExpensesSql = `DELETE FROM expense WHERE user_id = ?`;
-    const expenseResult = db.prepare(deleteExpensesSql).run(user_id);
-    console.log(`Deleted ${expenseResult.changes} expense records`);
+    // Start transaction
+    db.prepare('BEGIN TRANSACTION').run();
 
-    // Delete income
-    const deleteIncomeSql = `DELETE FROM income WHERE user_id = ?`;
-    const incomeResult = db.prepare(deleteIncomeSql).run(user_id);
-    console.log(`Deleted ${incomeResult.changes} income records`);
+    try {
+      // Delete expenses
+      const deleteExpensesSql = `DELETE FROM expense WHERE user_id = ?`;
+      const expenseResult = db.prepare(deleteExpensesSql).run(user_id);
+      console.log(`Deleted ${expenseResult.changes} expense records`);
 
-    // Delete user
-    const deleteResult = delete_user_by_id(user_id);
+      // Delete income
+      const deleteIncomeSql = `DELETE FROM income WHERE user_id = ?`;
+      const incomeResult = db.prepare(deleteIncomeSql).run(user_id);
+      console.log(`Deleted ${incomeResult.changes} income records`);
 
-    if (!deleteResult.success) {
+      // Delete avatar
+      delete_user_avatar(user_id);
+
+      // Delete user
+      const deleteResult = delete_user_by_id(user_id);
+
+      if (!deleteResult.success) {
+        throw new Error(deleteResult.message);
+      }
+
+      // Commit transaction
+      db.prepare('COMMIT').run();
+
+      res.status(200).json({
+        message: 'User profile and all associated data deleted successfully',
+        success: true
+      });
+
+    } catch (innerErr) {
+      // Rollback on any error
+      db.prepare('ROLLBACK').run();
+      throw innerErr;
+    }
+
+  } catch (err) {
+    console.error("Error deleting user profile:", err.message);
+
+    if (err.message.includes('User not found')) {
       return res.status(404).json({
-        message: deleteResult.message,
+        message: 'User not found',
         success: false
       });
     }
 
-    res.status(200).json({
-      message: 'User profile and all associated data deleted successfully',
-      success: true
-    });
-
-  } catch (err) {
-    console.error("Error deleting user profile:", err.message);
     res.status(500).json({
       message: "Error deleting user profile",
       error: err.message,
@@ -366,6 +392,86 @@ app.put('/profile/password', authenticateJWT, (req, res) => {
       error: err.message,
       success: false
     });
+  }
+});
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, avatarsDir);
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function(req, file, cb) {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
+// Avatar upload route
+app.post('/profile/avatar', authenticateJWT, upload.single('avatar'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const user_id = req.user.id;
+    const avatar_filename = req.file.filename;
+    const avatar_url = `/avatars/${avatar_filename}`;
+
+    // Save to database
+    const result = upsert_user_avatar(user_id, avatar_filename, avatar_url);
+
+    if (result.success) {
+      res.status(200).json({
+        message: 'Avatar uploaded successfully',
+        avatarUrl: avatar_url,
+        action: result.action
+      });
+    } else {
+      // Delete the uploaded file if database operation failed
+      fs.unlinkSync(req.file.path);
+      res.status(500).json({ message: 'Failed to save avatar' });
+    }
+  } catch (err) {
+    // Delete the uploaded file if error occurred
+    if (req.file) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error('Error uploading avatar:', err);
+    res.status(500).json({ message: 'Error uploading avatar', error: err.message });
+  }
+});
+
+// Serve avatar files statically
+app.use('/avatars', express.static(path.join(__dirname, 'uploads/avatars')));
+
+// Delete avatar route
+app.delete('/profile/avatar', authenticateJWT, (req, res) => {
+  try {
+    const user_id = req.user.id;
+    const result = delete_user_avatar(user_id);
+
+    if (result.success) {
+      res.status(200).json({ message: 'Avatar deleted successfully' });
+    } else {
+      res.status(404).json({ message: result.message || 'Avatar not found' });
+    }
+  } catch (err) {
+    console.error('Error deleting avatar:', err);
+    res.status(500).json({ message: 'Error deleting avatar', error: err.message });
   }
 });
 

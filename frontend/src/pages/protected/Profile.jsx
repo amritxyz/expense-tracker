@@ -1,5 +1,5 @@
 // src/components/profile/ProfileSection.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { ToastContainer, toast } from "react-toastify";
@@ -9,15 +9,35 @@ import VerticalNavbar from "./VerticalNavbar"
 import HorizontalNavbar from "./HorizontalNavbar";
 
 export default function ProfileSection() {
+  // 1. ALL HOOKS MUST BE AT THE TOP
+  const avatarMenuRef = useRef(null); // This goes first with other hooks
+
   const [user, setUser] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
 
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showAvatarMenu && !event.target.closest('.avatar-menu-container')) {
+        setShowAvatarMenu(false);
+      }
+    };
+
+    if (showAvatarMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAvatarMenu]);
 
   const fetchProfile = async () => {
     const token = localStorage.getItem("token");
@@ -28,6 +48,10 @@ export default function ProfileSection() {
       const data = await res.json();
       if (res.ok) {
         setUser(data);
+        // Ensure avatar URL is properly set
+        if (data.avatar && !data.avatar.startsWith('http')) {
+          data.avatar = `http://localhost:5000${data.avatar}`;
+        }
         setAvatarPreview(data.avatar || null);
         formik.setValues({ user_name: data.user_name, email: data.email });
       } else toast.error("Failed to load profile");
@@ -72,6 +96,17 @@ export default function ProfileSection() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => setAvatarPreview(reader.result);
     reader.readAsDataURL(file);
@@ -87,11 +122,46 @@ export default function ProfileSection() {
       .then((res) => res.json())
       .then((data) => {
         if (data.avatarUrl) {
-          setUser({ ...user, avatar: data.avatarUrl });
+          // Ensure we have the full URL
+          const fullAvatarUrl = data.avatarUrl.startsWith('http')
+            ? data.avatarUrl
+            : `http://localhost:5000${data.avatarUrl}`;
+
+          setUser({ ...user, avatar: fullAvatarUrl });
+          setAvatarPreview(fullAvatarUrl);
           toast.success("Avatar updated!");
+        } else {
+          toast.error(data.message || "Upload failed");
         }
       })
       .catch(() => toast.error("Upload failed"));
+  };
+
+  // Delete Avatar
+  const handleDeleteAvatar = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/profile/avatar", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setUser({ ...user, avatar: null });
+        setAvatarPreview(null);
+        setShowAvatarMenu(false);
+        toast.success("Avatar deleted successfully!");
+      } else {
+        toast.error(data.message || "Failed to delete avatar");
+      }
+    } catch (err) {
+      toast.error("Network error");
+    }
   };
 
   // Change Password
@@ -189,7 +259,7 @@ export default function ProfileSection() {
           <div className="w-[95%] max-w-6xl">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-4xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 My Profile
               </h1>
               <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
@@ -197,17 +267,17 @@ export default function ProfileSection() {
 
             <div className="grid gap-8 lg:grid-cols-3">
               {/* Avatar Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center transform hover:scale-[1.02] transition-all duration-300 max-h-80">
-                <div className="relative inline-block group">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center transform hover:scale-[1.02] transition-all duration-300 max-h-80 relative ">
+                <div className="relative inline-block group avatar-menu-container">
                   <label htmlFor="avatar" className="cursor-pointer block">
                     {avatarPreview || user.avatar ? (
                       <img
                         src={avatarPreview || user.avatar}
                         alt="Avatar"
-                        className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                        className="w-32 h-32 rounded-full object-cover border-4 border-current/20 shadow-lg"
                       />
                     ) : (
-                      <div className="w-32 h-32 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
                         {getInitials(user.user_name)}
                       </div>
                     )}
@@ -222,7 +292,50 @@ export default function ProfileSection() {
                     </div>
                   </label>
                   <input id="avatar" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+
+                  {/* Avatar Menu Button */}
+                  {(avatarPreview || user.avatar) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAvatarMenu(!showAvatarMenu);
+                      }}
+                      className="absolute top-0 right-0 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white text-sm hover:bg-gray-800 transition-colors duration-200 group/avatar"
+                    >
+                      <svg className="w-4 h-4 transition duration-300 group-hover/avatar:scale-120" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                        <path fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth={3.75} d="M12 12h.01v.01H12zm0-7h.01v.01H12zm0 14h.01v.01H12z"></path>
+                      </svg>
+                    </button>
+                  )}
                 </div>
+
+                {/* Avatar Dropdown Menu */}
+                {showAvatarMenu && (
+                  <div className="absolute top-12 right-8 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 min-w-32">
+                    <button
+                      onClick={() => {
+                        document.getElementById('avatar').click();
+                        setShowAvatarMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Change
+                    </button>
+                    <button
+                      onClick={handleDeleteAvatar}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Remove
+                    </button>
+                  </div>
+                )}
+
                 <h2 className="mt-6 text-2xl font-bold text-gray-900">{user.user_name}</h2>
                 <p className="text-gray-500 mt-1">{user.email}</p>
                 <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-sm">
@@ -281,7 +394,7 @@ export default function ProfileSection() {
                     <button
                       type="submit"
                       disabled={formik.isSubmitting || !formik.dirty}
-                      className="w-full py-3.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-101 transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-blue-500/25"
+                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-blue-500/25"
                     >
                       {formik.isSubmitting ? (
                         <span className="flex items-center justify-center">
@@ -346,14 +459,14 @@ export default function ProfileSection() {
                         <button
                           type="button"
                           onClick={() => { setIsChangingPassword(false); passwordFormik.resetForm(); }}
-                          className="flex-4 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition duration-300 cursor-pointer border border-gray-300 shadow-sm hover:scale-101"
+                          className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition duration-300 cursor-pointer border border-gray-300 shadow-sm hover:scale-[1.02]"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={passwordFormik.isSubmitting}
-                          className="flex-5 py-3 bg-linear-to-r from-red-600 to-red-600 text-white rounded-xl hover:from-red-700 hover:to-red-700 transform hover:scale-101 transition duration-300 font-medium shadow-lg shadow-red-500/25"
+                          className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-600 text-white rounded-xl hover:from-red-700 hover:to-red-700 transform hover:scale-[1.02] transition duration-300 font-medium shadow-lg shadow-red-500/25"
                         >
                           {passwordFormik.isSubmitting ? "Updating..." : "Update Password"}
                         </button>
@@ -373,7 +486,7 @@ export default function ProfileSection() {
                 </div>
 
                 {/* Danger Zone */}
-                <div className="bg-linear-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-8 transform hover:shadow-lg transition-all duration-300">
+                <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-8 transform hover:shadow-lg transition-all duration-300">
                   <div className="flex items-center mb-4">
                     <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
                       <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,7 +498,7 @@ export default function ProfileSection() {
                   <p className="text-red-700 mb-6">Once you delete your account, there is no going back. Please be certain.</p>
                   <button
                     onClick={() => setShowDeleteModal(true)}
-                    className="px-8 py-3.5 bg-linear-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-101 transition-all duration-200 font-medium shadow-lg shadow-red-500/25"
+                    className="px-8 py-3.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium shadow-lg shadow-red-500/25"
                   >
                     Delete Account
                   </button>
@@ -414,7 +527,7 @@ export default function ProfileSection() {
                     <button
                       onClick={handleDelete}
                       disabled={isDeleting}
-                      className="flex-1 py-3 bg-linear-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium disabled:opacity-70 disabled:hover:scale-100"
+                      className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium disabled:opacity-70 disabled:hover:scale-100"
                     >
                       {isDeleting ? (
                         <span className="flex items-center justify-center">
