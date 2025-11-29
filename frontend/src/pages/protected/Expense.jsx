@@ -569,7 +569,6 @@ export default function Expense() {
                 {/* Doughnut Chart */}
                 <div className="w-[350px] p-4 2xl:w-[400px] xl:w-[100px] sm:w-[350px] md:w-[400px] flex-1 ">
                   <Doughnut
-                    className="transition-all "
                     key={centerText}
                     data={doughnutData}
                     plugins={[centerTextPlugin]}
@@ -731,7 +730,7 @@ export default function Expense() {
                       <div className="flex flex-1 items-center">
                         {/* Category */}
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900 capitalize">expense
+                          <p className="font-medium text-gray-900 capitalize">
                             {item.categories}
                           </p>
                         </div>
@@ -744,7 +743,7 @@ export default function Expense() {
                         </div>
 
                         {/* Actions + Amount */}
-                        <div className="flex items-center space-x-2 flex-shrink-0">
+                        <div className="flex items-center space-x-2 shrink-0">
                           <EditButton
                             onClick={() => {
                               setSelectedExpense(item);
