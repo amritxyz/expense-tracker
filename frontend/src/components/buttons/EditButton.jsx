@@ -7,7 +7,7 @@ export default function EditButton({ onClick, className = "" }) {
       onClick={onClick}
       className={`font-semibold text-green-600 opacity-0 group-hover:opacity-100 duration-200 hover:text-green-500 hover:shadow-xs px-2 py-2 rounded-full transition-all cursor-pointer group/edit ${className}`}
     >
-      <svg className='transition-all duration-300 group-hover/edit:scale-110' xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+      <svg className='transition-all duration-300 group-hover/edit:scale-110 group-hover/edit:rotate-6' xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
         <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
           <path strokeDasharray={56} strokeDashoffset={56} d="M3 21l2 -6l11 -11c1 -1 3 -1 4 0c1 1 1 3 0 4l-11 11l-6 2">
             <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="56;0"></animate>
