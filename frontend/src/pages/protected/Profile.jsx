@@ -23,19 +23,19 @@ export default function ProfileSection() {
     fetchProfile();
   }, []);
 
+  // Update the click outside useEffect
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showAvatarMenu && !event.target.closest('.avatar-menu-container')) {
-        setShowAvatarMenu(false);
-      }
+    const handleClickOutside = () => {
+      setShowAvatarMenu(false);
     };
 
     if (showAvatarMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Close menu after a short delay when clicking anywhere
+      document.addEventListener('click', handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, [showAvatarMenu]);
 
@@ -138,9 +138,11 @@ export default function ProfileSection() {
   };
 
   // Delete Avatar
+  // Delete Avatar - Fixed version
   const handleDeleteAvatar = async () => {
     try {
       const token = localStorage.getItem("token");
+
       const res = await fetch("http://localhost:5000/profile/avatar", {
         method: "DELETE",
         headers: {
@@ -150,17 +152,18 @@ export default function ProfileSection() {
       });
 
       const data = await res.json();
+      console.log("📦 Response data:", data);
 
-      if (res.ok && data.success) {
-        setUser({ ...user, avatar: null });
-        setAvatarPreview(null);
-        setShowAvatarMenu(false);
+      if (res.ok) {
         toast.success("Avatar deleted successfully!");
+
+        // Force immediate page reload
+        window.location.reload();
       } else {
         toast.error(data.message || "Failed to delete avatar");
       }
     } catch (err) {
-      toast.error("Network error");
+      toast.error("Network error while deleting avatar");
     }
   };
 
@@ -267,8 +270,8 @@ export default function ProfileSection() {
 
             <div className="grid gap-8 lg:grid-cols-3">
               {/* Avatar Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center transform hover:scale-[1.02] transition-all duration-300 max-h-80 relative ">
-                <div className="relative inline-block group avatar-menu-container">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center transform hover:scale-[1.02] transition-all duration-300 max-h-80 relative">
+                <div ref={avatarMenuRef} className="relative inline-block group"> {/* Add ref here */}
                   <label htmlFor="avatar" className="cursor-pointer block">
                     {avatarPreview || user.avatar ? (
                       <img
@@ -298,6 +301,7 @@ export default function ProfileSection() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         setShowAvatarMenu(!showAvatarMenu);
                       }}
                       className="absolute top-0 right-0 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white text-sm hover:bg-gray-800 transition-colors duration-200 group/avatar"
