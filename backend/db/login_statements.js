@@ -88,5 +88,67 @@ function update_user_by_id(id, user_name, email) {
   return { changes: result.changes };
 }
 
+function delete_user_by_id(id) {
+  const sql = `DELETE FROM ${table_name} WHERE id = ?`;
+  try {
+    const result = db.prepare(sql).run(id);
+    console.log(`[✓] Deleted user with ID: ${id}, changes: ${result.changes}`);
+    return {
+      success: result.changes > 0,
+      changes: result.changes,
+      message: result.changes > 0 ? 'User deleted successfully' : 'User not found'
+    };
+  } catch (err) {
+    console.error(`[x] Failed to delete user: `, err.message);
+    return {
+      success: false,
+      changes: 0,
+      message: err.message
+    };
+  }
+}
+
+function update_user_password_by_id(id, currentPassword, newPassword) {
+  try {
+    // First, verify the current password
+    const user = get_user_by_id(id);
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
+    // Get the full user data including password
+    const fullUser = db.prepare(`SELECT * FROM ${table_name} WHERE id = ?`).get(id);
+
+    // Compare current password (plain text - you should hash passwords in production)
+    if (fullUser.password !== currentPassword) {
+      return {
+        success: false,
+        message: 'Current password is incorrect'
+      };
+    }
+
+    // Update to new password
+    const sql = `UPDATE ${table_name} SET ${last_attr} = ? WHERE ${first_attr} = ?`;
+    const result = db.prepare(sql).run(newPassword, id);
+
+    return {
+      success: result.changes > 0,
+      changes: result.changes,
+      message: result.changes > 0 ? 'Password updated successfully' : 'Failed to update password'
+    };
+
+  } catch (err) {
+    console.error(`[x] Failed to update password: `, err.message);
+    return {
+      success: false,
+      changes: 0,
+      message: err.message
+    };
+  }
+}
+
 // Exporting functions
-module.exports = { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id };
+module.exports = { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id };

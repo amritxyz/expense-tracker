@@ -9,7 +9,7 @@ const path = require('path');
 const dbPath = path.join(__dirname, './db/database.db');
 const db = new Database(dbPath, { verbose: console.log });
 
-const { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id } = require('./db/login_statements');
+const { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id } = require('./db/login_statements');
 const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user, edit_expenses_by_user } = require('./db/expense');
 const { create_income_table, insert_income, get_income, get_income_by_user, edit_income_by_id } = require('./db/income');
 
@@ -280,6 +280,92 @@ app.put('/profile', authenticateJWT, (req, res) => {
     res.json({ message: 'Profile updated', user: updated });
   } else {
     res.status(404).json({ message: 'Update failed' });
+  }
+});
+
+// DELETE /profile — Delete current user's profile and all associated data (sequential approach)
+app.delete('/profile', authenticateJWT, async (req, res) => {
+  const user_id = req.user.id;
+
+  try {
+    // Delete expenses
+    const deleteExpensesSql = `DELETE FROM expense WHERE user_id = ?`;
+    const expenseResult = db.prepare(deleteExpensesSql).run(user_id);
+    console.log(`Deleted ${expenseResult.changes} expense records`);
+
+    // Delete income
+    const deleteIncomeSql = `DELETE FROM income WHERE user_id = ?`;
+    const incomeResult = db.prepare(deleteIncomeSql).run(user_id);
+    console.log(`Deleted ${incomeResult.changes} income records`);
+
+    // Delete user
+    const deleteResult = delete_user_by_id(user_id);
+
+    if (!deleteResult.success) {
+      return res.status(404).json({
+        message: deleteResult.message,
+        success: false
+      });
+    }
+
+    res.status(200).json({
+      message: 'User profile and all associated data deleted successfully',
+      success: true
+    });
+
+  } catch (err) {
+    console.error("Error deleting user profile:", err.message);
+    res.status(500).json({
+      message: "Error deleting user profile",
+      error: err.message,
+      success: false
+    });
+  }
+});
+
+// PUT /profile/password — Update user's password
+app.put('/profile/password', authenticateJWT, (req, res) => {
+  const user_id = req.user.id;
+  const { currentPassword, newPassword } = req.body;
+
+  // Validate input
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({
+      message: 'Current password and new password are required',
+      success: false
+    });
+  }
+
+  // Validate new password length
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      message: 'New password must be at least 6 characters long',
+      success: false
+    });
+  }
+
+  try {
+    // Call the password update function
+    const result = update_user_password_by_id(user_id, currentPassword, newPassword);
+
+    if (result.success) {
+      res.status(200).json({
+        message: result.message,
+        success: true
+      });
+    } else {
+      res.status(400).json({
+        message: result.message,
+        success: false
+      });
+    }
+  } catch (err) {
+    console.error("Error changing password:", err.message);
+    res.status(500).json({
+      message: "Error changing password",
+      error: err.message,
+      success: false
+    });
   }
 });
 

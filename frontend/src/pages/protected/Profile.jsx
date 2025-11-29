@@ -1,234 +1,442 @@
 // src/components/profile/ProfileSection.jsx
 import { useState, useEffect } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import VerticalNavbar from "./VerticalNavbar"
 import HorizontalNavbar from "./HorizontalNavbar";
 
-export default function Profile() {
-  // Mock user data — replace with API call in real app
-  const [user, setUser] = useState({
-    id: "",
-    name: "",
-    email: "",
-    // TODO: avatar: null, // or a URL
-  });
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ user_name: "", email: "" });
-  const [isSaving, setIsSaving] = useState(false);
+export default function ProfileSection() {
+  const [user, setUser] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Not logged in");
-        return;
-      }
-
-      try {
-        const res = await fetch("http://localhost:5000/profile", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-          setFormData({ user_name: data.user_name, email: data.email });
-        } else {
-          toast.error("Failed to load profile");
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Error loading profile");
-      }
-    };
-
     fetchProfile();
   }, []);
 
-  // Initialize form data from user
-  useEffect(() => {
-    setFormData({ user_name: user.user_name, email: user.email });
-  }, [user]);
-
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setFormData({ user_name: user.user_name, email: user.email });
-    setIsEditing(false);
-  };
-
-  const handleSave = async () => {
-    if (!formData.user_name || !formData.email) {
-      toast.error("Please fill in all fields.");
-      return;
-    }
-
-    setIsSaving(true);
-    toast.loading("Saving changes...");
-
+  const fetchProfile = async () => {
+    const token = localStorage.getItem("token");
     try {
-      const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:5000/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          user_name: formData.user_name,
-          email: formData.email
-        }),
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
-
       if (res.ok) {
-        setUser(data.user);
-        setIsEditing(false);
-        toast.dismiss();
-        toast.success("Profile updated!");
-      } else {
-        toast.dismiss();
-        toast.error(data.message || "Failed to update profile");
-      }
+        setUser(data);
+        setAvatarPreview(data.avatar || null);
+        formik.setValues({ user_name: data.user_name, email: data.email });
+      } else toast.error("Failed to load profile");
     } catch (err) {
-      toast.dismiss();
       toast.error("Network error");
-      console.error(err);
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  // Generate avatar initials
-  const getInitials = (name) => {
-    if (!name) return "?";
+  // Formik for Name + Email
+  const formik = useFormik({
+    initialValues: { user_name: "", email: "" },
+    validationSchema: Yup.object({
+      user_name: Yup.string().required("Name is required").min(2, "Too short"),
+      email: Yup.string().email("Invalid email").required("Email is required"),
+    }),
+    onSubmit: async (values, { setSubmitting }) => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/profile", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(values),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setUser(data.user || { ...user, ...values });
+          toast.success("Profile updated!");
+        } else toast.error(data.message || "Update failed");
+      } catch (err) {
+        toast.error("Something went wrong");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+  });
 
-    return name
-      .toString() // in case it's not a string
-      .trim()
-      .split(/\s+/) // split on one or more spaces
-      .map(part => part[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2) || "??";
+  // Avatar Upload
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result);
+    reader.readAsDataURL(file);
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    fetch("http://localhost:5000/profile/avatar", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.avatarUrl) {
+          setUser({ ...user, avatar: data.avatarUrl });
+          toast.success("Avatar updated!");
+        }
+      })
+      .catch(() => toast.error("Upload failed"));
   };
+
+  // Change Password
+  const passwordFormik = useFormik({
+    initialValues: { current: "", new: "", confirm: "" },
+    validationSchema: Yup.object({
+      current: Yup.string().required("Current password is required"),
+      new: Yup.string()
+        .min(6, "Password must be at least 6 characters")
+        .required("New password is required"),
+      confirm: Yup.string()
+        .oneOf([Yup.ref("new")], "Passwords must match")
+        .required("Please confirm your new password"),
+    }),
+    onSubmit: async (values, { resetForm, setSubmitting }) => {
+      try {
+        const res = await fetch("http://localhost:5000/profile/password", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            currentPassword: values.current,
+            newPassword: values.new,
+          }),
+        });
+        if (res.ok) {
+          toast.success("Password changed!");
+          resetForm();
+          setIsChangingPassword(false);
+        } else {
+          const err = await res.json();
+          toast.error(err.message || "Failed");
+        }
+      } catch {
+        toast.error("Network error");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+  });
+
+  // Delete Account
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch("http://localhost:5000/profile", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (res.ok) {
+        localStorage.removeItem("token");
+        toast.success("Account deleted");
+        setTimeout(() => (window.location.href = "/login"), 1500);
+      }
+    } catch {
+      toast.error("Failed to delete");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const getInitials = (name) =>
+    name
+      ? name
+        .trim()
+        .split(/\s+/)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+      : "??";
+
+  if (!user)
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
+      </div>
+    );
+
   return (
     <>
-      <div className="bg-blue-50">
-        <div className="fixed w-28 2xl:w-64 hidden lg:block p-5 shadow-current/20 shadow-xl bg-blue-50">
+      <div className="from-blue-50 to-indigo-50 min-h-screen">
+        <div className="fixed w-28 2xl:w-64 hidden lg:block p-5 shadow-lg bg-white/80 backdrop-blur-sm">
           <VerticalNavbar />
         </div>
+
         <div className="block lg:hidden">
           <HorizontalNavbar />
         </div>
 
-        <div className={`2xl:ml-64 lg:ml-28 bg-blue-50 gap-y-6 flex flex-col min-h-screen h-full`}>
-          <div className={`flex items-center justify-center h-screen`}>
-            <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200 w-[50%]">
-              <div className="flex flex-col items-center mb-6">
-                {/* Avatar */}
-                <div className="mb-4">
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt="Profile"
-                      className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-indigo-100">
-                      {getInitials(user.user_name)}
+        <div className={`2xl:ml-64 lg:ml-28 bg-transparent gap-y-6 flex flex-col min-h-screen h-full items-center py-8`}>
+          <div className="w-[95%] max-w-6xl">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                My Profile
+              </h1>
+              <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-3">
+              {/* Avatar Card */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center transform hover:scale-[1.02] transition-all duration-300 max-h-80">
+                <div className="relative inline-block group">
+                  <label htmlFor="avatar" className="cursor-pointer block">
+                    {avatarPreview || user.avatar ? (
+                      <img
+                        src={avatarPreview || user.avatar}
+                        alt="Avatar"
+                        className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+                        {getInitials(user.user_name)}
+                      </div>
+                    )}
+                    <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                      <div className="text-center">
+                        <svg className="w-8 h-8 text-white mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-white text-sm font-medium">Change Photo</span>
+                      </div>
                     </div>
-                  )}
+                  </label>
+                  <input id="avatar" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                 </div>
-
-                {/* Name */}
-                <h1 className="text-2xl font-bold text-gray-900">{user.user_name}</h1>
-                <p className="text-gray-500">{user.email}</p>
-              </div>
-
-              {/* Profile Info */}
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={formData.user_name}
-                      onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      disabled={isSaving}
-                    />
-                  ) : (
-                    <p className="text-gray-900 font-medium">{user.user_name}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Email Address</label>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      disabled={isSaving}
-                    />
-                  ) : (
-                    <p className="text-gray-900 font-medium">{user.email}</p>
-                  )}
+                <h2 className="mt-6 text-2xl font-bold text-gray-900">{user.user_name}</h2>
+                <p className="text-gray-500 mt-1">{user.email}</p>
+                <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-sm">
+                  <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                  Active
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="mt-8 flex justify-end gap-3">
-                {isEditing ? (
-                  <>
+              {/* Forms Card */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Edit Profile */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 transform hover:shadow-xl transition-all duration-300">
+                  <div className="flex items-center mb-6">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900">Personal Information</h3>
+                  </div>
+                  <form onSubmit={formik.handleSubmit} className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                      <input
+                        type="text"
+                        {...formik.getFieldProps("user_name")}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50/50"
+                      />
+                      {formik.touched.user_name && formik.errors.user_name && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          {formik.errors.user_name}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                      <input
+                        type="email"
+                        {...formik.getFieldProps("email")}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50/50"
+                      />
+                      {formik.touched.email && formik.errors.email && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          {formik.errors.email}
+                        </p>
+                      )}
+                    </div>
+
                     <button
-                      type="button"
-                      onClick={handleCancel}
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-200 cursor-pointer border border-gray-300 shadow-sm"
+                      type="submit"
+                      disabled={formik.isSubmitting || !formik.dirty}
+                      className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-blue-500/25"
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 cursor-pointer shadow-lg shadow-gray-50 flex items-center justify-center gap-2"
-                    >
-                      {isSaving ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      {formik.isSubmitting ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Saving...
-                        </>
+                          Saving Changes...
+                        </span>
                       ) : (
                         "Save Changes"
                       )}
                     </button>
-                  </>
-                ) : (
+                  </form>
+                </div>
+
+                {/* Change Password */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 transform hover:shadow-xl transition-all duration-300">
+                  <div className="flex items-center mb-6">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900">Change Password</h3>
+                  </div>
+                  {isChangingPassword ? (
+                    <form onSubmit={passwordFormik.handleSubmit} className="space-y-5">
+                      <div>
+                        <input
+                          type="password"
+                          placeholder="Current password"
+                          {...passwordFormik.getFieldProps("current")}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 bg-gray-50/50"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="password"
+                          placeholder="New password"
+                          {...passwordFormik.getFieldProps("new")}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 bg-gray-50/50"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="password"
+                          placeholder="Confirm new password"
+                          {...passwordFormik.getFieldProps("confirm")}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 bg-gray-50/50"
+                        />
+                        {passwordFormik.errors.confirm && passwordFormik.touched.confirm && (
+                          <p className="mt-2 text-sm text-red-600 flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            {passwordFormik.errors.confirm}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => { setIsChangingPassword(false); passwordFormik.resetForm(); }}
+                          className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={passwordFormik.isSubmitting}
+                          className="flex-1 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transform hover:scale-[1.02] transition-all duration-200 font-medium shadow-lg shadow-red-500/25"
+                        >
+                          {passwordFormik.isSubmitting ? "Updating..." : "Update Password"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button
+                      onClick={() => setIsChangingPassword(true)}
+                      className="group text-blue-600 hover:text-blue-700 font-medium text-lg transition-all duration-200 inline-flex items-center"
+                    >
+                      Change Password
+                      <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* Danger Zone */}
+                <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-2xl p-8 transform hover:shadow-lg transition-all duration-300">
+                  <div className="flex items-center mb-4">
+                    <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-red-800">Danger Zone</h3>
+                  </div>
+                  <p className="text-red-700 mb-6">Once you delete your account, there is no going back. Please be certain.</p>
                   <button
-                    onClick={handleEditClick}
-                    className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 cursor-pointer shadow-lg shadow-gray-50 flex items-center justify-center gap-2"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="px-8 py-3.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium shadow-lg shadow-red-500/25"
                   >
-                    Edit Profile
+                    Delete Account
                   </button>
-                )}
+                </div>
               </div>
             </div>
+
+            {/* Delete Modal */}
+            {showDeleteModal && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl p-8 max-w-md mx-4 transform animate-scale-in">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-center text-gray-900">Delete Account?</h3>
+                  <p className="mt-3 text-gray-600 text-center">This action cannot be undone. All your data will be permanently removed.</p>
+                  <div className="mt-8 flex gap-4">
+                    <button
+                      onClick={() => setShowDeleteModal(false)}
+                      className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="flex-1 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transform hover:scale-[1.02] transition-all duration-200 font-medium disabled:opacity-70 disabled:hover:scale-100"
+                    >
+                      {isDeleting ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Deleting...
+                        </span>
+                      ) : (
+                        "Delete Account"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <ToastContainer position="top-right" autoClose={3000} />
           </div>
         </div>
       </div>
     </>
-  )
+  );
 }
