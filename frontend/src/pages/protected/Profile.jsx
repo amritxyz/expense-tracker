@@ -263,7 +263,7 @@ export default function ProfileSection() {
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                My Profile
+                Profile
               </h1>
               <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
             </div>
