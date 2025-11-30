@@ -1,3 +1,4 @@
+import { saveAs } from "file-saver";
 import { useState, useEffect, useMemo } from "react";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
@@ -140,6 +141,8 @@ export default function Recent() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [timePeriod, setTimePeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [reportFormat, setReportFormat] = useState('csv'); // 'csv' or 'xml'
 
   const selectedItem = transactions.find(t => t.id === selectedItemId);
 
@@ -360,6 +363,126 @@ export default function Recent() {
     { value: 'yearly', label: 'Yearly' }
   ];
 
+  // Helper function to convert data to CSV
+  const convertToCSV = (data) => {
+    if (!data.length) return '';
+
+    const headers = ['Type', 'Description', 'Category', 'Subcategory', 'Amount', 'Date'];
+    const csvHeaders = headers.join(',');
+
+    const csvRows = data.map(row => {
+      const rowData = [
+        row.type,
+        row.type === 'income' ? row.inc_source : row.categories,
+        row.type === 'income' ? 'Income' : row.categories,
+        row.type === 'income' ? 'N/A' : (row.subcategories || 'N/A'),
+        row.amount,
+        row.date
+      ];
+
+      return rowData.map(value => `"${String(value || '').replace(/"/g, '""')}"`).join(',');
+    });
+
+    return [csvHeaders, ...csvRows].join('\n');
+  };
+
+  // Helper function to convert data to XML
+  const convertToXML = (data, format = 'xml') => {
+    const incomeData = data.filter(t => t.type === 'income');
+    const expenseData = data.filter(t => t.type === 'expense');
+
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-report.xsl"?>' : ''}
+<TransactionReport>
+  <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
+  <Summary>
+    <TotalTransactions>${data.length}</TotalTransactions>
+    <TotalIncome>${totalIncome}</TotalIncome>
+    <TotalExpense>${totalExpense}</TotalExpense>
+    <NetBalance>${totalBudget}</NetBalance>
+    <AvailableBalance>${incomeLeft}</AvailableBalance>
+  </Summary>
+  <TimePeriod>
+    <Type>${timePeriod}</Type>
+    <Range>${barLabels[0]} to ${barLabels[barLabels.length - 1]}</Range>
+  </TimePeriod>
+  <Transactions>
+    ${data.map(item => `
+    <Transaction>
+      <Type>${item.type}</Type>
+      <Description>${item.type === 'income' ? item.inc_source : item.categories}</Description>
+      <Category>${item.type === 'income' ? 'Income' : item.categories}</Category>
+      <Subcategory>${item.type === 'income' ? 'N/A' : (item.subcategories || 'N/A')}</Subcategory>
+      <Amount>${item.amount}</Amount>
+      <Date>${item.date}</Date>
+    </Transaction>`).join('')}
+  </Transactions>
+  <PeriodicData>
+    ${barLabels.map((label, index) => `
+    <Period>
+      <Label>${label}</Label>
+      <Income>${incomePerPeriod[index]}</Income>
+      <Expense>${expensePerPeriod[index]}</Expense>
+      <Net>${incomePerPeriod[index] - expensePerPeriod[index]}</Net>
+    </Period>`).join('')}
+  </PeriodicData>
+</TransactionReport>`;
+
+    return xmlContent;
+  };
+
+  // Main download handler function
+  const handleDownloadReport = async () => {
+    setIsDownloading(true);
+
+    try {
+      if (transactions.length === 0) {
+        toast.warning('No transaction data available to download');
+        return;
+      }
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      let content, filename, mimeType;
+
+      switch (reportFormat) {
+        case 'csv':
+          content = convertToCSV(transactions);
+          filename = `transactions-report-${timestamp}.csv`;
+          mimeType = 'text/csv;charset=utf-8';
+          break;
+
+        case 'xml':
+          content = convertToXML(transactions, 'xml');
+          filename = `transactions-report-${timestamp}.xml`;
+          mimeType = 'application/xml;charset=utf-8';
+          break;
+
+        case 'xslt':
+          content = convertToXML(transactions, 'xslt');
+          filename = `transactions-report-${timestamp}.xml`;
+          mimeType = 'application/xml;charset=utf-8';
+          break;
+
+        default:
+          content = convertToCSV(transactions);
+          filename = `transactions-report-${timestamp}.csv`;
+          mimeType = 'text/csv;charset=utf-8';
+      }
+
+      // Create and download the file
+      const blob = new Blob([content], { type: mimeType });
+      saveAs(blob, filename);
+
+      toast.success(`Transactions report downloaded as ${filename}`);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download transactions report');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <section className="flex flex-col items-center space-y-6 ">
       <Warning data={{ totalBudget, totalIncome, totalExpense }} />
@@ -467,21 +590,60 @@ export default function Recent() {
       <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-gray-50 to-white">
         <div className="flex items-center justify-between text-center">
           <p className="text-gray-900 font-semibold">Recent Transactions</p>
-          <button
-            onClick={() => navigate("/dashboard/expense")}
-            className="px-6 py-3 text-white bg-linear-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-x-1 group cursor-pointer"
-          >
-            See More
-            <svg
-              className="transition-transform transform group-hover:translate-x-1 duration-300"
-              xmlns="http://www.w3.org/2000/svg"
-              width={20}
-              height={20}
-              viewBox="0 0 24 24"
+
+          <div className="flex items-center gap-3">
+            {/* Download Reports Section */}
+            <div className="flex items-center gap-2 mr-4">
+              <select
+                value={reportFormat}
+                onChange={(e) => setReportFormat(e.target.value)}
+                className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none ring-2 ring-current/20 focus:ring-2 focus:ring-current/30 mr-2"
+              >
+                <option value="csv">CSV Format</option>
+                <option value="xml">XML Format</option>
+                <option value="xslt">XSLT Format</option>
+              </select>
+
+              <button
+                onClick={handleDownloadReport}
+                disabled={isDownloading}
+                className="px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102 group/download"
+              >
+                {isDownloading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Report
+                  </>
+                )}
+              </button>
+            </div>
+
+            <button
+              onClick={() => navigate("/dashboard/expense")}
+              className="px-6 py-3 text-white bg-linear-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-x-1 group cursor-pointer"
             >
-              <path fill="currentColor" d="m16.172 11l-5.364-5.364l1.414-1.414L20 12l-7.778 7.778l-1.414-1.414L16.172 13H4v-2z"></path>
-            </svg>
-          </button>
+              See More
+              <svg
+                className="transition-transform transform group-hover:translate-x-1 duration-300"
+                xmlns="http://www.w3.org/2000/svg"
+                width={20}
+                height={20}
+                viewBox="0 0 24 24"
+              >
+                <path fill="currentColor" d="m16.172 11l-5.364-5.364l1.414-1.414L20 12l-7.778 7.778l-1.414-1.414L16.172 13H4v-2z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <hr className="text-current/20 my-3 shadow shadow-current/20" />

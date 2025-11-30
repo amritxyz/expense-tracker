@@ -1,3 +1,4 @@
+import { saveAs } from "file-saver";
 import { useState, useEffect, useMemo } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -155,6 +156,8 @@ export default function Expense() {
   const [hellCenterText, setCenterText] = useState("");
   const [pendingExpense, setPendingExpense] = useState("");
   const [timePeriod, setTimePeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [reportFormat, setReportFormat] = useState('csv');
 
   // Define transactions state HERE, before it's used
   const [transactions, setTransactions] = useState([]);
@@ -531,6 +534,232 @@ export default function Expense() {
     }
   };
 
+  // Helper function to convert data to CSV
+  const convertToCSV = (data) => {
+    if (!data.length) return '';
+
+    const headers = Object.keys(data[0]).filter(key => key !== 'id' && key !== 'type');
+    const csvHeaders = headers.join(',');
+
+    const csvRows = data.map(row => {
+      return headers.map(header => {
+        const value = row[header];
+        // Handle values that might contain commas
+        return `"${String(value || '').replace(/"/g, '""')}"`;
+      }).join(',');
+    });
+
+    return [csvHeaders, ...csvRows].join('\n');
+  };
+
+  // Helper function to convert data to XML
+  const convertToXML = (data, format = 'xml') => {
+    const expenseData = data.filter(t => t.type === 'expense');
+
+    if (format === 'xslt') {
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="expense-report.xsl"?>
+<ExpenseReport>
+  <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
+  <TotalRecords>${expenseData.length}</TotalRecords>
+  <TotalAmount>${expenseData.reduce((sum, item) => sum + Number(item.amount), 0)}</TotalAmount>
+  <BudgetStatus>
+    <TotalIncome>${totalIncome}</TotalIncome>
+    <TotalExpense>${totalExpense}</TotalExpense>
+    <RemainingBudget>${totalBudget}</RemainingBudget>
+  </BudgetStatus>
+  <Transactions>
+    ${expenseData.map(item => `
+    <Transaction>
+      <Category>${item.categories}</Category>
+      <Subcategory>${item.subcategories || 'N/A'}</Subcategory>
+      <Amount>${item.amount}</Amount>
+      <Date>${item.date}</Date>
+    </Transaction>`).join('')}
+  </Transactions>
+</ExpenseReport>`;
+    } else {
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<ExpenseReport>
+  <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
+  <TotalRecords>${expenseData.length}</TotalRecords>
+  <TotalAmount>${expenseData.reduce((sum, item) => sum + Number(item.amount), 0)}</TotalAmount>
+  <BudgetStatus>
+    <TotalIncome>${totalIncome}</TotalIncome>
+    <TotalExpense>${totalExpense}</TotalExpense>
+    <RemainingBudget>${totalBudget}</RemainingBudget>
+  </BudgetStatus>
+  <Transactions>
+    ${expenseData.map(item => `
+    <Transaction>
+      <Category>${item.categories}</Category>
+      <Subcategory>${item.subcategories || 'N/A'}</Subcategory>
+      <Amount>${item.amount}</Amount>
+      <Date>${item.date}</Date>
+    </Transaction>`).join('')}
+  </Transactions>
+</ExpenseReport>`;
+    }
+  };
+
+  // Main download handler function
+  const handleDownloadReport = async () => {
+    setIsDownloading(true);
+
+    try {
+      const expenseData = transactions.filter(t => t.type === 'expense');
+
+      if (expenseData.length === 0) {
+        toast.warning('No expense data available to download');
+        return;
+      }
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      let content, filename, mimeType;
+
+      switch (reportFormat) {
+        case 'csv':
+          content = convertToCSV(expenseData);
+          filename = `expense-report-${timestamp}.csv`;
+          mimeType = 'text/csv;charset=utf-8';
+          break;
+
+        case 'xml':
+          content = convertToXML(expenseData, 'xml');
+          filename = `expense-report-${timestamp}.xml`;
+          mimeType = 'application/xml;charset=utf-8';
+          break;
+
+        case 'xslt':
+          content = convertToXML(expenseData, 'xslt');
+          filename = `expense-report-${timestamp}.xml`;
+          mimeType = 'application/xml;charset=utf-8';
+          break;
+
+        default:
+          content = convertToCSV(expenseData);
+          filename = `expense-report-${timestamp}.csv`;
+          mimeType = 'text/csv;charset=utf-8';
+      }
+
+      // Create and download the file
+      const blob = new Blob([content], { type: mimeType });
+      saveAs(blob, filename);
+
+      toast.success(`Expense report downloaded as ${filename}`);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download expense report');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Optional: XSLT stylesheet download for expense reports
+  const downloadXSLTStylesheet = () => {
+    const xsltContent = `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:output method="html" indent="yes"/>
+
+  <xsl:template match="/">
+    <html>
+      <head>
+        <title>Expense Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8fafc; }
+          .container { max-width: 1200px; margin: 0 auto; }
+          .header { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; }
+          .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+          .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .card.income { border-left: 4px solid #4ade80; }
+          .card.expense { border-left: 4px solid #ef4444; }
+          .card.budget { border-left: 4px solid #3b82f6; }
+          .card-value { font-size: 24px; font-weight: bold; margin: 10px 0; }
+          .card.income .card-value { color: #4ade80; }
+          .card.expense .card-value { color: #ef4444; }
+          .card.budget .card-value { color: #3b82f6; }
+          table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          th, td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+          th { background-color: #ef4444; color: white; font-weight: 600; }
+          tr:nth-child(even) { background-color: #f8fafc; }
+          tr:hover { background-color: #fef2f2; }
+          .category-badge { background-color: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+          .amount { font-weight: 600; }
+          .positive { color: #4ade80; }
+          .negative { color: #ef4444; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Expense Report</h1>
+            <p>Generated on: <xsl:value-of select="ExpenseReport/GeneratedAt"/></p>
+          </div>
+
+          <div class="summary-cards">
+            <div class="card income">
+              <h3>Total Income</h3>
+              <div class="card-value">Rs. <xsl:value-of select="format-number(ExpenseReport/BudgetStatus/TotalIncome, '#,##0.00')"/></div>
+            </div>
+            <div class="card expense">
+              <h3>Total Expense</h3>
+              <div class="card-value">Rs. <xsl:value-of select="format-number(ExpenseReport/BudgetStatus/TotalExpense, '#,##0.00')"/></div>
+            </div>
+            <div class="card budget">
+              <h3>Remaining Budget</h3>
+              <div class="card-value">
+                <xsl:choose>
+                  <xsl:when test="ExpenseReport/BudgetStatus/RemainingBudget >= 0">
+                    <span class="positive">Rs. <xsl:value-of select="format-number(ExpenseReport/BudgetStatus/RemainingBudget, '#,##0.00')"/></span>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <span class="negative">-Rs. <xsl:value-of select="format-number(-ExpenseReport/BudgetStatus/RemainingBudget, '#,##0.00')"/></span>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </div>
+            </div>
+          </div>
+
+          <h2>Expense Transactions (<xsl:value-of select="ExpenseReport/TotalRecords"/>)</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Subcategory</th>
+                <th>Amount (Rs.)</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <xsl:for-each select="ExpenseReport/Transactions/Transaction">
+                <tr>
+                  <td>
+                    <span class="category-badge"><xsl:value-of select="Category"/></span>
+                  </td>
+                  <td><xsl:value-of select="Subcategory"/></td>
+                  <td class="amount negative">-<xsl:value-of select="format-number(Amount, '#,##0.00')"/></td>
+                  <td><xsl:value-of select="Date"/></td>
+                </tr>
+              </xsl:for-each>
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>Total Expense Amount: Rs. <xsl:value-of select="format-number(ExpenseReport/TotalAmount, '#,##0.00')"/></p>
+          </div>
+        </div>
+      </body>
+    </html>
+  </xsl:template>
+</xsl:stylesheet>`;
+
+    const blob = new Blob([xsltContent], { type: 'application/xslt+xml' });
+    saveAs(blob, 'expense-report.xsl');
+    toast.success('XSLT stylesheet for expense report downloaded');
+  };
+
   return (
     <>
       <div className="bg-blue-50">
@@ -705,17 +934,55 @@ export default function Expense() {
           <div className="w-full flex items-center justify-center">
             <div className="border border-current/20 rounded-2xl w-[90%] sm:w-[90%] p-4 bg-linear-to-r from-gray-50 to-white mb-9">
               <div className="flex items-center justify-between text-center">
-                <p className="text-gray-900 font-semibold ">Recent Expenses</p>
+                <p className="text-gray-900 font-semibold">Recent Expenses</p>
 
-                <button
-                  onClick={handleAddExpenseClick}
-                  className="px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102"
-                >
-                  <svg className="w-5 h-5 transition-all duration-500 group-hover:scale-110 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Add Expense
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* Download Reports Section */}
+                  <div className="flex items-center gap-2 mr-4">
+                    <select
+                      value={reportFormat}
+                      onChange={(e) => setReportFormat(e.target.value)}
+                      className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none ring-2 ring-current/20 focus:ring-2 focus:ring-current/30 mr-2"
+                    >
+                      <option value="csv">CSV Format</option>
+                      <option value="xml">XML Format</option>
+                      <option value="xslt">XSLT Format</option>
+                    </select>
+
+                    <button
+                      onClick={handleDownloadReport}
+                      disabled={isDownloading}
+                      className="px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102 group/download"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download Report
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleAddExpenseClick}
+                    className="px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102"
+                  >
+                    <svg className="w-5 h-5 transition-all duration-500 group-hover:scale-110 group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Expense
+                  </button>
+                </div>
               </div>
               <hr className="text-current/20 my-3 shadow shadow-current/20" />
 

@@ -1,7 +1,6 @@
+import { saveAs } from "file-saver"
 import { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import { Formik, Form, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
 
 // Navbar (horizontal and vertical)
 import VerticalNavbar from "./VerticalNavbar";
@@ -35,7 +34,6 @@ const formatDateLabel = (dateString, period) => {
 
 // Helper function to get date ranges based on time period
 const getDateRange = (period) => {
-  const today = new Date();
   const ranges = [];
 
   switch (period) {
@@ -127,6 +125,9 @@ export default function Income() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState(null);
   const [timePeriod, setTimePeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
+
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [reportFormat, setReportFormat] = useState("csv");
 
   const [barChartData, setBarChartData] = useState({
     labels: [],
@@ -369,6 +370,116 @@ export default function Income() {
     });
   }, [transactions, timePeriod]);
 
+  // Helper function to convert data to CSV
+  const convertToCSV = (data) => {
+    if (!data.length) return '';
+
+    const headers = Object.keys(data[0]).filter(key => key !== 'id' && key !== 'type');
+    const csvHeaders = headers.join(',');
+
+    const csvRows = data.map(row => {
+      return headers.map(header => {
+        const value = row[header];
+        // Handle values that might contain commas
+        return `"${String(value || '').replace(/"/g, '""')}"`;
+      }).join(',');
+    });
+
+    return [csvHeaders, ...csvRows].join('\n');
+  };
+
+  // Helper function to convert data to XML
+  const convertToXML = (data, format = 'xml') => {
+    const incomeData = data.filter(t => t.type === 'income');
+
+    if (format === 'xslt') {
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="income-report.xsl"?>
+<IncomeReport>
+  <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
+  <TotalRecords>${incomeData.length}</TotalRecords>
+  <TotalAmount>${incomeData.reduce((sum, item) => sum + Number(item.amount), 0)}</TotalAmount>
+  <Transactions>
+    ${incomeData.map(item => `
+    <Transaction>
+      <Source>${item.inc_source}</Source>
+      <Amount>${item.amount}</Amount>
+      <Date>${item.date}</Date>
+    </Transaction>`).join('')}
+  </Transactions>
+</IncomeReport>`;
+    } else {
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<IncomeReport>
+  <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
+  <TotalRecords>${incomeData.length}</TotalRecords>
+  <TotalAmount>${incomeData.reduce((sum, item) => sum + Number(item.amount), 0)}</TotalAmount>
+  <Transactions>
+    ${incomeData.map(item => `
+    <Transaction>
+      <Source>${item.inc_source}</Source>
+      <Amount>${item.amount}</Amount>
+      <Date>${item.date}</Date>
+    </Transaction>`).join('')}
+  </Transactions>
+</IncomeReport>`;
+    }
+  };
+
+  // Main download handler function
+  const handleDownloadReport = async () => {
+    setIsDownloading(true);
+
+    try {
+      const incomeData = transactions.filter(t => t.type === 'income');
+
+      if (incomeData.length === 0) {
+        toast.warning('No income data available to download');
+        return;
+      }
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      let content, filename, mimeType;
+
+      switch (reportFormat) {
+        case 'csv':
+          content = convertToCSV(incomeData);
+          filename = `income-report-${timestamp}.csv`;
+          mimeType = 'text/csv;charset=utf-8';
+          break;
+
+        case 'xml':
+          content = convertToXML(incomeData, 'xml');
+          filename = `income-report-${timestamp}.xml`;
+          mimeType = 'application/xml;charset=utf-8';
+          break;
+
+        case 'xslt':
+          content = convertToXML(incomeData, 'xslt');
+          filename = `income-report-${timestamp}.xml`;
+          mimeType = 'application/xml;charset=utf-8';
+          break;
+
+        default:
+          content = convertToCSV(incomeData);
+          filename = `income-report-${timestamp}.csv`;
+          mimeType = 'text/csv;charset=utf-8';
+      }
+
+      // Create and download the file
+      const blob = new Blob([content], { type: mimeType });
+      saveAs(blob, filename);
+
+      toast.success(`Report downloaded as ${filename}`);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download report');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <>
       <div className="bg-blue-50">
@@ -519,17 +630,55 @@ export default function Income() {
           <div className="w-full flex items-center justify-center ">
             <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-gray-50 to-white">
               <div className="flex items-center justify-between text-center">
-                <p className="text-gray-900 font-semibold ">Recent Income</p>
+                <p className="text-gray-900 font-semibold">Recent Income</p>
 
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-4 py-3 bg-linear-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 group hover:scale-102"
-                >
-                  <svg className="w-5 h-5 transition-all duration-500 group-hover:scale-125 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                  Add Income
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* Download Reports Section */}
+                  <div className="flex items-center gap-2 mr-4">
+                    <select
+                      value={reportFormat}
+                      onChange={(e) => setReportFormat(e.target.value)}
+                      className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none ring-2 ring-current/15 focus:ring-2 focus:ring-current/30 mr-2"
+                    >
+                      <option value="csv">CSV Format</option>
+                      <option value="xml">XML Format</option>
+                      <option value="xslt">XSLT Format</option>
+                    </select>
+
+                    <button
+                      onClick={handleDownloadReport}
+                      disabled={isDownloading}
+                      className="px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102 group/download"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white " fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download Report
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-4 py-3 bg-linear-to-r from-green-500 to-green-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 cursor-pointer shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 group hover:scale-102"
+                  >
+                    <svg className="w-5 h-5 transition-all duration-500 group-hover:scale-125 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                    Add Income
+                  </button>
+                </div>
               </div>
 
               <hr className="text-current/20 my-3 shadow shadow-current/20" />
