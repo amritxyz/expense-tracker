@@ -35,6 +35,10 @@ const createCenterTextPlugin = (centerText) => ({
   }
 });
 
+function refreshPage() {
+  window.location.reload();
+}
+
 // Helper function to format dates based on time period
 const formatDateLabel = (dateString, period) => {
   const date = new Date(dateString);
@@ -140,20 +144,24 @@ export default function Recent() {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [timePeriod, setTimePeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
+  const [timePeriod, setTimePeriod] = useState('weekly');
   const [isDownloading, setIsDownloading] = useState(false);
-  const [reportFormat, setReportFormat] = useState('csv'); // 'csv' or 'xml'
+  const [reportFormat, setReportFormat] = useState('csv');
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
 
-  const selectedItem = transactions.find(t => t.id === selectedItemId);
+  // const selectedItem = transactions.find(t => t.id === selectedItemId);
 
   const navigate = useNavigate();
 
   async function handleDelete(id, type) {
     toast.loading("Deleting...");
-    if (!type || (type !== "income" && type !== "expense")) {
-      toast.error("Invalid transaction type");
+
+    if (!id || !type || (type !== "income" && type !== "expense")) {
+      toast.dismiss();
+      toast.error("Invalid transaction data for deletion");
       return;
     }
+
     try {
       const token = localStorage.getItem("token");
 
@@ -163,7 +171,9 @@ export default function Recent() {
         return;
       }
 
-      const endPoint = type === "income" ? `http://localhost:5000/income/${id}` : `http://localhost:5000/expenses/${id}`;
+      const endPoint = type === "income"
+        ? `http://localhost:5000/income/${id}`
+        : `http://localhost:5000/expenses/${id}`;
 
       const response = await fetch(endPoint, {
         method: "DELETE",
@@ -178,12 +188,14 @@ export default function Recent() {
           prevTransactions.filter((transaction) => transaction.id !== id)
         );
         setIsDeleteModalOpen(false);
+        setDeleteCandidate(null);
       } else {
         toast.dismiss();
         toast.error(data.message || "Failed to delete the transaction.");
       }
     } catch (err) {
       toast.dismiss();
+      console.error("Delete error:", err);
       toast.error("An error occurred while deleting the transaction.");
     }
   }
@@ -237,16 +249,18 @@ export default function Recent() {
   const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);
 
   const doughnutData = {
-    labels: ["Income left", "Total Expense"],
+    labels: ["Income left", "Total Expense", "Total Income"],
     datasets: [
       {
         data: [
           incomeLeft || 0,
           totalExpense || 0,
+          totalIncome || 0,
         ],
         backgroundColor: [
           incomeLeft ? "#4ade80" : "#ddd",
           totalExpense ? "#f87171" : "#ddd",
+          totalIncome ? "#50ABE7" : "#ddd",
         ],
         borderWidth: 1,
       },
@@ -504,7 +518,8 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
           <div className="border border-gray-300 rounded-2xl p-4 bg-linear-to-r from-green-50 to-teal-50">
             <p className="text-gray-600 text-sm font-medium">Budget Left</p>
             <p className="text-lg font-bold text-green-600 mt-1">
-              {isNaN(percentageBudget) || percentageBudget === Infinity ? "Nil" : Math.round(percentageBudget)} %
+              {/* {isNaN(percentageBudget) || percentageBudget === Infinity ? "Nil" : Math.round(percentageBudget)} % */}
+              {percentageBudget > 0 ? Math.round(percentageBudget) : "-Nil"}%
             </p>
           </div>
         </div>
@@ -597,7 +612,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
               <select
                 value={reportFormat}
                 onChange={(e) => setReportFormat(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none ring-2 ring-current/20 focus:ring-2 focus:ring-current/30 mr-2"
+                className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 focus:outline-none ring-2 ring-current/15 focus:ring-2 focus:ring-current/30 mr-2"
               >
                 <option value="csv">CSV Format</option>
                 <option value="xml">XML Format</option>
@@ -619,9 +634,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <svg className="w-5 h-5 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path></svg>
                     Download Report
                   </>
                 )}
@@ -673,7 +686,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
                   <EditButton onClick={() => openEditModal(item)} />
                   <DeleteButton
                     onClick={() => {
-                      setSelectedItemId(item.id);
+                      setDeleteCandidate({ id: item.id, type: item.type });
                       setIsDeleteModalOpen(true);
                     }}
                   />
@@ -709,22 +722,30 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
           transactionType={selectedTransaction?.type || "expense"}
         />
 
-        {/* Delete Modal */}
         <DeleteModal
           isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={() => {
-            handleDelete(selectedItemId, selectedItem?.type);
+          onClose={() => {
             setIsDeleteModalOpen(false);
+            setDeleteCandidate(null);
+          }}
+          onConfirm={() => {
+            if (deleteCandidate) {
+              handleDelete(deleteCandidate.id, deleteCandidate.type);
+            } else {
+              toast.error("No transaction selected for deletion");
+              setIsDeleteModalOpen(false);
+            }
           }}
           itemName={
-            selectedItem
-              ? selectedItem.type === 'income'
-                ? selectedItem.inc_source
-                : selectedItem.categories
+            deleteCandidate
+              ? transactions.find(t => t.id === deleteCandidate.id)
+                ? transactions.find(t => t.id === deleteCandidate.id).type === 'income'
+                  ? transactions.find(t => t.id === deleteCandidate.id).inc_source
+                  : transactions.find(t => t.id === deleteCandidate.id).categories
+                : 'this item'
               : 'this item'
           }
-          itemType={selectedItem?.type || 'transaction'}
+          itemType={deleteCandidate?.type || 'transaction'}
         />
       </div>
       <ToastContainer />

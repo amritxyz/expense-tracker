@@ -942,7 +942,7 @@ export default function Expense() {
                     <select
                       value={reportFormat}
                       onChange={(e) => setReportFormat(e.target.value)}
-                      className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium focus:outline-none ring-2 ring-current/20 focus:ring-2 focus:ring-current/30 mr-2"
+                      className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 focus:outline-none ring-2 ring-current/15 focus:ring-2 focus:ring-current/30 mr-2"
                     >
                       <option value="csv">CSV Format</option>
                       <option value="xml">XML Format</option>
@@ -964,9 +964,7 @@ export default function Expense() {
                         </>
                       ) : (
                         <>
-                          <svg className="w-4 h-4 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
+                          <svg className="w-5 h-5 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path></svg>
                           Download Report
                         </>
                       )}
