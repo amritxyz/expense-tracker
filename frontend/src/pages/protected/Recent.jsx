@@ -249,18 +249,16 @@ export default function Recent() {
   const centerTextPlugin = useMemo(() => createCenterTextPlugin(centerText), [centerText]);
 
   const doughnutData = {
-    labels: ["Income left", "Total Expense", "Total Income"],
+    labels: ["Income left", "Total Expense"],
     datasets: [
       {
         data: [
           incomeLeft || 0,
           totalExpense || 0,
-          totalIncome || 0,
         ],
         backgroundColor: [
           incomeLeft ? "#4ade80" : "#ddd",
           totalExpense ? "#f87171" : "#ddd",
-          totalIncome ? "#50ABE7" : "#ddd",
         ],
         borderWidth: 1,
       },
@@ -519,7 +517,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
             <p className="text-gray-600 text-sm font-medium">Budget Left</p>
             <p className="text-lg font-bold text-green-600 mt-1">
               {/* {isNaN(percentageBudget) || percentageBudget === Infinity ? "Nil" : Math.round(percentageBudget)} % */}
-              {percentageBudget > 0 ? Math.round(percentageBudget) : "-Nil"}%
+              {percentageBudget > 0 ? Math.round(percentageBudget) + "%" : "N/A"}
             </p>
           </div>
         </div>
