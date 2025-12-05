@@ -156,8 +156,17 @@ export default function Expense() {
   const [hellCenterText, setCenterText] = useState("");
   const [pendingExpense, setPendingExpense] = useState("");
   const [timePeriod, setTimePeriod] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
+  /* INFO: Report related variables */
+  // Add these state variables
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [reportFormat, setReportFormat] = useState('csv');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState('weekly'); // weekly, monthly, yearly, custom
+
+  const [dateSelected1, setDateSelected1] = useState(false);
+  const [dateSelected2, setDateSelected2] = useState(false);
 
   // Define transactions state HERE, before it's used
   const [transactions, setTransactions] = useState([]);
@@ -534,42 +543,106 @@ export default function Expense() {
     }
   };
 
-  // Helper function to convert data to CSV
-  const convertToCSV = (data) => {
-    if (!data.length) return '';
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case 'weekly':
+        return 'Last 7 Days';
+      case 'monthly':
+        return 'Last 30 Days';
+      case 'yearly':
+        return 'Last 12 Months';
+      case 'custom':
+        return 'Custom Range';
+      default:
+        return 'Last 7 Days';
+    }
+  };
 
-    const headers = Object.keys(data[0]).filter(key => key !== 'id' && key !== 'type');
+  const filterExpensesByPeriod = (expenses) => {
+    if (!expenses.length) return expenses;
+
+    const filteredExpenses = [...expenses];
+
+    switch (selectedPeriod) {
+      case 'weekly': {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        return filteredExpenses.filter(expense => new Date(expense.date) >= cutoff);
+      }
+
+      case 'monthly': {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        return filteredExpenses.filter(expense => new Date(expense.date) >= cutoff);
+      }
+
+      case 'yearly': {
+        const cutoff = new Date();
+        cutoff.setFullYear(cutoff.getFullYear() - 1);
+        return filteredExpenses.filter(expense => new Date(expense.date) >= cutoff);
+      }
+
+      case 'custom': {
+        if (!customStartDate || !customEndDate) {
+          toast.error('Please select both start and end dates');
+          return [];
+        }
+        const start = new Date(customStartDate);
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+
+        return filteredExpenses.filter(expense => {
+          const expenseDate = new Date(expense.date);
+          return expenseDate >= start && expenseDate <= end;
+        });
+      }
+
+      default:
+        return filteredExpenses;
+    }
+  };
+
+  // Helper function to convert data to CSV
+  const convertToCSV = (expenses) => {
+    if (!expenses.length) return 'No data';
+
+    const headers = ['Category', 'Subcategory', 'Amount', 'Date'];
     const csvHeaders = headers.join(',');
 
-    const csvRows = data.map(row => {
-      return headers.map(header => {
-        const value = row[header];
-        // Handle values that might contain commas
-        return `"${String(value || '').replace(/"/g, '""')}"`;
-      }).join(',');
+    const csvRows = expenses.map(row => {
+      const rowData = [
+        row.categories,
+        row.subcategories || 'N/A',
+        row.amount,
+        row.date
+      ];
+      return rowData.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',');
     });
 
     return [csvHeaders, ...csvRows].join('\n');
   };
 
   // Helper function to convert data to XML
-  const convertToXML = (data, format = 'xml') => {
-    const expenseData = data.filter(t => t.type === 'expense');
+  const convertToXML = (expenses, format = 'xml') => {
+    const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
-    if (format === 'xslt') {
-      return `<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="expense-report.xsl"?>
+    return `<?xml version="1.0" encoding="UTF-8"?>
+${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="expense-report.xsl"?>' : ''}
 <ExpenseReport>
   <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
-  <TotalRecords>${expenseData.length}</TotalRecords>
-  <TotalAmount>${expenseData.reduce((sum, item) => sum + Number(item.amount), 0)}</TotalAmount>
-  <BudgetStatus>
-    <TotalIncome>${totalIncome}</TotalIncome>
-    <TotalExpense>${totalExpense}</TotalExpense>
-    <RemainingBudget>${totalBudget}</RemainingBudget>
-  </BudgetStatus>
+  <Summary>
+    <TimePeriod>${getPeriodLabel()}</TimePeriod>
+    ${selectedPeriod === 'custom' ? `<DateRange>${customStartDate} to ${customEndDate}</DateRange>` : ''}
+    <TotalRecords>${expenses.length}</TotalRecords>
+    <TotalAmount>${totalAmount.toFixed(2)}</TotalAmount>
+    <BudgetSummary>
+      <TotalIncome>${totalIncome.toFixed(2)}</TotalIncome>
+      <TotalExpense>${totalExpense.toFixed(2)}</TotalExpense>
+      <RemainingBudget>${totalBudget.toFixed(2)}</RemainingBudget>
+    </BudgetSummary>
+  </Summary>
   <Transactions>
-    ${expenseData.map(item => `
+    ${expenses.map(item => `
     <Transaction>
       <Category>${item.categories}</Category>
       <Subcategory>${item.subcategories || 'N/A'}</Subcategory>
@@ -578,79 +651,106 @@ export default function Expense() {
     </Transaction>`).join('')}
   </Transactions>
 </ExpenseReport>`;
+  };
+
+  const getFilteredExpenseData = () => {
+    let filteredExpenses = transactions.filter(t => t.type === 'expense');
+
+    // Apply date filtering
+    if (isCustomMode && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      end.setHours(23, 59, 59, 999);
+
+      filteredExpenses = filteredExpenses.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate >= start && txDate <= end;
+      });
     } else {
-      return `<?xml version="1.0" encoding="UTF-8"?>
-<ExpenseReport>
-  <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
-  <TotalRecords>${expenseData.length}</TotalRecords>
-  <TotalAmount>${expenseData.reduce((sum, item) => sum + Number(item.amount), 0)}</TotalAmount>
-  <BudgetStatus>
-    <TotalIncome>${totalIncome}</TotalIncome>
-    <TotalExpense>${totalExpense}</TotalExpense>
-    <RemainingBudget>${totalBudget}</RemainingBudget>
-  </BudgetStatus>
-  <Transactions>
-    ${expenseData.map(item => `
-    <Transaction>
-      <Category>${item.categories}</Category>
-      <Subcategory>${item.subcategories || 'N/A'}</Subcategory>
-      <Amount>${item.amount}</Amount>
-      <Date>${item.date}</Date>
-    </Transaction>`).join('')}
-  </Transactions>
-</ExpenseReport>`;
+      // Default: recent period based on timePeriod
+      const daysBack = reportTimePeriod === 'weekly' ? 7 : reportTimePeriod === 'monthly' ? 30 : 365;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - daysBack);
+
+      filteredExpenses = filteredExpenses.filter(t => new Date(t.date) >= cutoff);
     }
+
+    return {
+      transactions: filteredExpenses,
+      periodType: isCustomMode ? 'custom' : reportTimePeriod,
+      dateRangeText: isCustomMode
+        ? `${customStartDate} to ${customEndDate}`
+        : reportTimePeriod === 'weekly'
+          ? 'Last 7 Days'
+          : reportTimePeriod === 'monthly'
+            ? 'Last 30 Days'
+            : 'Last 12 Months'
+    };
   };
 
   // Main download handler function
   const handleDownloadReport = async () => {
+    if (selectedPeriod === 'custom' && (!customStartDate || !customEndDate)) {
+      toast.error('Please select both start and end dates for custom range');
+      return;
+    }
+
     setIsDownloading(true);
 
     try {
-      const expenseData = transactions.filter(t => t.type === 'expense');
+      const allExpenses = transactions.filter(t => t.type === 'expense');
+      const filteredExpenses = filterExpensesByPeriod(allExpenses);
 
-      if (expenseData.length === 0) {
-        toast.warning('No expense data available to download');
+      if (filteredExpenses.length === 0) {
+        toast.warning('No expense data found for selected period');
+        setIsDownloading(false);
         return;
       }
 
       const timestamp = new Date().toISOString().split('T')[0];
+      const periodLabel = selectedPeriod === 'custom' ? 'custom' : selectedPeriod;
       let content, filename, mimeType;
 
       switch (reportFormat) {
         case 'csv':
-          content = convertToCSV(expenseData);
-          filename = `expense-report-${timestamp}.csv`;
+          content = convertToCSV(filteredExpenses);
+          filename = `expense-report-${periodLabel}-${timestamp}.csv`;
           mimeType = 'text/csv;charset=utf-8';
           break;
 
         case 'xml':
-          content = convertToXML(expenseData, 'xml');
-          filename = `expense-report-${timestamp}.xml`;
+          content = convertToXML(filteredExpenses, 'xml');
+          filename = `expense-report-${periodLabel}-${timestamp}.xml`;
           mimeType = 'application/xml;charset=utf-8';
           break;
 
         case 'xslt':
-          content = convertToXML(expenseData, 'xslt');
-          filename = `expense-report-${timestamp}.xml`;
+          content = convertToXML(filteredExpenses, 'xslt');
+          filename = `expense-report-${periodLabel}-${timestamp}.xml`;
           mimeType = 'application/xml;charset=utf-8';
           break;
 
         default:
-          content = convertToCSV(expenseData);
-          filename = `expense-report-${timestamp}.csv`;
+          content = convertToCSV(filteredExpenses);
+          filename = `expense-report-${periodLabel}-${timestamp}.csv`;
           mimeType = 'text/csv;charset=utf-8';
       }
 
-      // Create and download the file
       const blob = new Blob([content], { type: mimeType });
       saveAs(blob, filename);
 
-      toast.success(`Expense report downloaded as ${filename}`);
+      toast.success(`Expense report downloaded successfully`);
+      setIsDownloadModalOpen(false);
+
+      // Reset form
+      setSelectedPeriod('weekly');
+      setCustomStartDate('');
+      setCustomEndDate('');
+      setReportFormat('csv');
 
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download expense report');
+      toast.error('Failed to generate expense report');
     } finally {
       setIsDownloading(false);
     }
@@ -937,37 +1037,205 @@ export default function Expense() {
                 <p className="text-gray-900 font-semibold">Recent Expenses</p>
 
                 <div className="flex items-center gap-3">
-                  {/* Download Reports Section */}
-                  <div className="flex items-center gap-2 mr-4">
-                    <select
-                      value={reportFormat}
-                      onChange={(e) => setReportFormat(e.target.value)}
-                      className="px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 focus:outline-none ring-2 ring-current/15 focus:ring-2 focus:ring-current/30 mr-2"
-                    >
-                      <option value="csv">CSV Format</option>
-                      <option value="xml">XML Format</option>
-                      <option value="xslt">XSLT Format</option>
-                    </select>
+                  {/* Download Report Modal */}
+                  {isDownloadModalOpen && (
+                    <div className="fixed inset-0 flex justify-center items-center bg-black/40 z-50 backdrop-blur-sm">
 
+                      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-6">
+                          <h2 className="text-2xl font-extrabold text-gray-700">Download Expense Report</h2>
+
+                          <button
+                            onClick={() => setIsDownloadModalOpen(false)}
+                            className="text-gray-500 hover:text-gray-700 text-4xl cursor-pointer"
+                          >
+                            &times;
+                          </button>
+                        </div>
+
+                        {/* Period Selection */}
+                        <div className="mb-6">
+                          <h3 className="text-lg font-semibold text-gray-600 mb-3">Select Time Period</h3>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => setSelectedPeriod('weekly')}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all ${selectedPeriod === 'weekly'
+                                ? 'border-red-500 bg-red-50 text-red-600'
+                                : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
+                                }`}
+                            >
+                              <span className="font-medium text-gray-600">Last 7 Days</span>
+                            </button>
+                            <button
+                              onClick={() => setSelectedPeriod('monthly')}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all ${selectedPeriod === 'monthly'
+                                ? 'border-red-500 bg-red-50 text-red-600'
+                                : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
+                                }`}
+                            >
+                              <span className="font-medium text-gray-600">Last 30 Days</span>
+                            </button>
+                            <button
+                              onClick={() => setSelectedPeriod('yearly')}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all ${selectedPeriod === 'yearly'
+                                ? 'border-red-500 bg-red-50 text-red-600'
+                                : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
+                                }`}
+                            >
+                              <span className="font-medium text-gray-600">Last 12 Months</span>
+                            </button>
+                            <button
+                              onClick={() => setSelectedPeriod('custom')}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all ${selectedPeriod === 'custom'
+                                ? 'border-red-500 bg-red-50 text-red-600'
+                                : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
+                                }`}
+                            >
+                              <span className="font-medium text-gray-600">Custom Range</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Custom Date Inputs */}
+                        {selectedPeriod === 'custom' && (
+                          <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                            <h3 className="text-lg font-semibold text-gray-600 mb-3">Select Custom Dates</h3>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-600 mb-1">
+                                  Start Date
+                                </label>
+                                <input
+                                  type="date"
+                                  value={customStartDate}
+                                  onSelect={() => setDateSelected1(true)}
+                                  onBlur={() => setDateSelected1(false)}
+                                  onChange={(e) => setCustomStartDate(e.target.value)}
+                                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 hover:text-gray-800 ${dateSelected1 ? 'text-gray-800' : 'text-gray-600'
+                                    }`}
+                                  max={new Date().toISOString().split('T')[0]}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-600 mb-1">
+                                  End Date
+                                </label>
+                                <input
+                                  type="date"
+                                  value={customEndDate}
+                                  onChange={(e) => setCustomEndDate(e.target.value)}
+                                  onMouseOver={() => setDateSelected2(true)}
+                                  onMouseOut={() => setDateSelected2(false)}
+                                  min={customStartDate}
+                                  max={new Date().toISOString().split('T')[0]}
+                                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 hover:text-gray-800 ${dateSelected2 ? 'text-gray-800' : 'text-gray-600'
+                                    }`}
+                                />
+                              </div>
+                              {customStartDate && customEndDate && (
+                                <div className="text-sm text-gray-600">
+                                  Selected: {customStartDate} to {customEndDate}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Format Selection */}
+                        <div className="mb-8">
+                          <h3 className="text-lg font-semibold text-gray-600 mb-3">Select Format</h3>
+                          <div className="grid grid-cols-3 gap-3">
+                            <button
+                              onClick={() => setReportFormat('csv')}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all ${reportFormat === 'csv'
+                                ? 'border-red-500 bg-red-50 text-red-600'
+                                : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
+                                }`}
+                            >
+                              <div className="font-medium text-gray-700">CSV</div>
+                              <div className="text-xs mt-1 text-gray-500">Excel</div>
+                            </button>
+                            <button
+                              onClick={() => setReportFormat('xml')}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all ${reportFormat === 'xml'
+                                ? 'border-orange-500 bg-orange-50 text-orange-600'
+                                : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                                }`}
+                            >
+                              <div className="font-medium text-gray-700">XML</div>
+                              <div className="text-xs mt-1 text-gray-500">Data</div>
+                            </button>
+                            <button
+                              onClick={() => setReportFormat('xslt')}
+                              className={`px-4 py-3 rounded-xl border-2 transition-all ${reportFormat === 'xslt'
+                                ? 'border-purple-500 bg-purple-50 text-purple-600'
+                                : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                                }`}
+                            >
+                              <div className="font-medium text-gray-700">XSLT</div>
+                              <div className="text-xs mt-1 text-gray-500">Styled</div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Summary Info */}
+                        <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-100">
+                          <h3 className="font-semibold text-red-700 mb-2">Report Summary</h3>
+                          <div className="text-sm text-red-600">
+                            <div>• Will include all expense transactions</div>
+                            <div>• Filtered by {getPeriodLabel()}</div>
+                            <div>• Downloaded as {reportFormat.toUpperCase()} file</div>
+                            {selectedPeriod === 'custom' && customStartDate && customEndDate && (
+                              <div>• Date range: {customStartDate} to {customEndDate}</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => setIsDownloadModalOpen(false)}
+                            className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-300 cursor-pointer border border-gray-300 shadow-sm hover:scale-102"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleDownloadReport}
+                            disabled={isDownloading || (selectedPeriod === 'custom' && (!customStartDate || !customEndDate))}
+                            className="flex-1 px-4 py-3 bg-linear-to-r from-red-500 to-red-600 text-white font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102"
+                          >
+                            {isDownloading ? (
+                              <>
+                                <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-5 h-5 transition duration-300 group-hover:rotate-12 group-hover:scale-120" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                                  <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path>
+                                </svg>
+                                Download Report
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Download Reports Button */}
+                  <div className="flex items-center gap-2 mr-4">
                     <button
-                      onClick={handleDownloadReport}
-                      disabled={isDownloading}
-                      className="px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 cursor-pointer shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 group hover:scale-102 group/download"
+                      onClick={() => setIsDownloadModalOpen(true)}
+                      className="px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 cursor-pointer shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group hover:scale-102"
                     >
-                      {isDownloading ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5 transition duration-300 group-hover/download:rotate-12 group-hover/download:scale-120" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path></svg>
-                          Download Report
-                        </>
-                      )}
+                      <svg className="w-5 h-5 transition duration-300 group-hover:rotate-12 group-hover:scale-120" xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path>
+                      </svg>
+                      Download Report
                     </button>
                   </div>
 

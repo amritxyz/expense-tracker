@@ -149,6 +149,11 @@ export default function Recent() {
   const [reportFormat, setReportFormat] = useState('csv');
   const [deleteCandidate, setDeleteCandidate] = useState(null);
 
+  // For reports
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
   // const selectedItem = transactions.find(t => t.id === selectedItemId);
 
   const navigate = useNavigate();
@@ -376,13 +381,13 @@ export default function Recent() {
   ];
 
   // Helper function to convert data to CSV
-  const convertToCSV = (data) => {
-    if (!data.length) return '';
+  const convertToCSV = (reportData) => {
+    if (!reportData.transactions.length) return 'No data';
 
     const headers = ['Type', 'Description', 'Category', 'Subcategory', 'Amount', 'Date'];
     const csvHeaders = headers.join(',');
 
-    const csvRows = data.map(row => {
+    const csvRows = reportData.transactions.map(row => {
       const rowData = [
         row.type,
         row.type === 'income' ? row.inc_source : row.categories,
@@ -391,35 +396,36 @@ export default function Recent() {
         row.amount,
         row.date
       ];
-
-      return rowData.map(value => `"${String(value || '').replace(/"/g, '""')}"`).join(',');
+      return rowData.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',');
     });
 
     return [csvHeaders, ...csvRows].join('\n');
   };
 
   // Helper function to convert data to XML
-  const convertToXML = (data, format = 'xml') => {
-    const incomeData = data.filter(t => t.type === 'income');
-    const expenseData = data.filter(t => t.type === 'expense');
+  const convertToXML = (reportData, format = 'xml') => {
+    const { transactions, labels, incomePerPeriod, expensePerPeriod, periodType, dateRangeText } = reportData;
 
-    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+    const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+    const netBalance = totalIncome - totalExpense;
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
 ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-report.xsl"?>' : ''}
 <TransactionReport>
   <GeneratedAt>${new Date().toISOString()}</GeneratedAt>
   <Summary>
-    <TotalTransactions>${data.length}</TotalTransactions>
-    <TotalIncome>${totalIncome}</TotalIncome>
-    <TotalExpense>${totalExpense}</TotalExpense>
-    <NetBalance>${totalBudget}</NetBalance>
-    <AvailableBalance>${incomeLeft}</AvailableBalance>
+    <TotalTransactions>${transactions.length}</TotalTransactions>
+    <TotalIncome>${totalIncome.toFixed(2)}</TotalIncome>
+    <TotalExpense>${totalExpense.toFixed(2)}</TotalExpense>
+    <NetBalance>${netBalance.toFixed(2)}</NetBalance>
   </Summary>
   <TimePeriod>
-    <Type>${timePeriod}</Type>
-    <Range>${barLabels[0]} to ${barLabels[barLabels.length - 1]}</Range>
+    <Type>${periodType}</Type>
+    <Range>${dateRangeText}</Range>
   </TimePeriod>
   <Transactions>
-    ${data.map(item => `
+    ${transactions.map(item => `
     <Transaction>
       <Type>${item.type}</Type>
       <Description>${item.type === 'income' ? item.inc_source : item.categories}</Description>
@@ -430,17 +436,15 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
     </Transaction>`).join('')}
   </Transactions>
   <PeriodicData>
-    ${barLabels.map((label, index) => `
+    ${labels.map((label, i) => `
     <Period>
       <Label>${label}</Label>
-      <Income>${incomePerPeriod[index]}</Income>
-      <Expense>${expensePerPeriod[index]}</Expense>
-      <Net>${incomePerPeriod[index] - expensePerPeriod[index]}</Net>
+      <Income>${incomePerPeriod[i]}</Income>
+      <Expense>${expensePerPeriod[i]}</Expense>
+      <Net>${(incomePerPeriod[i] - expensePerPeriod[i]).toFixed(2)}</Net>
     </Period>`).join('')}
   </PeriodicData>
 </TransactionReport>`;
-
-    return xmlContent;
   };
 
   // Main download handler function
@@ -449,7 +453,21 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
 
     try {
       if (transactions.length === 0) {
-        toast.warning('No transaction data available to download');
+        toast.warning('No transaction data available');
+        return;
+      }
+
+      if (isCustomMode && (!customStartDate || !customEndDate)) {
+        toast.error('Please select both start and end dates for custom range');
+        setIsDownloading(false);
+        return;
+      }
+
+      const reportData = getFilteredAndGroupedData();
+
+      if (reportData.transactions.length === 0) {
+        toast.warning('No transactions found in selected period');
+        setIsDownloading(false);
         return;
       }
 
@@ -458,41 +476,104 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
 
       switch (reportFormat) {
         case 'csv':
-          content = convertToCSV(transactions);
-          filename = `transactions-report-${timestamp}.csv`;
+          content = convertToCSV(reportData);
+          filename = `report-${reportData.periodType}-${timestamp}.csv`;
           mimeType = 'text/csv;charset=utf-8';
           break;
-
         case 'xml':
-          content = convertToXML(transactions, 'xml');
-          filename = `transactions-report-${timestamp}.xml`;
-          mimeType = 'application/xml;charset=utf-8';
-          break;
-
         case 'xslt':
-          content = convertToXML(transactions, 'xslt');
-          filename = `transactions-report-${timestamp}.xml`;
+          content = convertToXML(reportData, reportFormat);
+          filename = `report-${reportData.periodType}-${timestamp}.xml`;
           mimeType = 'application/xml;charset=utf-8';
           break;
-
         default:
-          content = convertToCSV(transactions);
-          filename = `transactions-report-${timestamp}.csv`;
-          mimeType = 'text/csv;charset=utf-8';
+          content = convertToCSV(reportData);
+          filename = `report-${reportData.periodType}-${timestamp}.csv`;
       }
 
-      // Create and download the file
       const blob = new Blob([content], { type: mimeType });
       saveAs(blob, filename);
 
-      toast.success(`Transactions report downloaded as ${filename}`);
-
+      toast.success(`Report downloaded: ${filename}`);
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download transactions report');
+      toast.error('Failed to generate report');
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  // Report
+  const getFilteredAndGroupedData = () => {
+    let filteredTransactions = transactions;
+
+    // Apply date filtering
+    if (isCustomMode && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      end.setHours(23, 59, 59, 999);
+
+      filteredTransactions = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate >= start && txDate <= end;
+      });
+    } else {
+      // Default: recent period based on timePeriod
+      const daysBack = timePeriod === 'weekly' ? 7 : timePeriod === 'monthly' ? 30 : 365;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - daysBack);
+
+      filteredTransactions = transactions.filter(t => new Date(t.date) >= cutoff);
+    }
+
+    // Now group by selected period (weekly/monthly/yearly)
+    const grouped = {};
+    const labels = [];
+    const incomeData = [];
+    const expenseData = [];
+
+    filteredTransactions.forEach(tx => {
+      const date = new Date(tx.date);
+      let key;
+
+      if (timePeriod === 'weekly' || (isCustomMode && timePeriod !== 'custom')) {
+        // Group by day (last 7 days or custom week)
+        key = date.toISOString().split('T')[0];
+      } else if (timePeriod === 'monthly' || (isCustomMode && timePeriod !== 'custom')) {
+        key = date.toISOString().split('T')[0]; // daily in month
+      } else {
+        // yearly or custom → group by month-year
+        key = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      }
+
+      if (!grouped[key]) grouped[key] = { income: 0, expense: 0 };
+      if (tx.type === 'income') grouped[key].income += Number(tx.amount);
+      else grouped[key].expense += Number(tx.amount);
+    });
+
+    // Sort keys chronologically
+    Object.keys(grouped)
+      .sort((a, b) => new Date(a) - new Date(b))
+      .forEach(key => {
+        labels.push(key);
+        incomeData.push(grouped[key].income);
+        expenseData.push(grouped[key].expense);
+      });
+
+    return {
+      transactions: filteredTransactions,
+      labels,
+      incomePerPeriod: incomeData,
+      expensePerPeriod: expenseData,
+      periodType: isCustomMode ? 'custom' : timePeriod,
+      dateRangeText: isCustomMode
+        ? `${customStartDate} to ${customEndDate}`
+        : timePeriod === 'weekly'
+          ? 'Last 7 Days'
+          : timePeriod === 'monthly'
+            ? 'Last 30 Days'
+            : 'Last 12 Months'
+    };
   };
 
   return (
@@ -526,20 +607,68 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
       {/* Doughnut and Bar Charts */}
       <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-indigo-50 to-purple-50 ">
         {/* Time Period Selector */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+        <div className="flex flex-wrap justify-center gap-3 mb-6 items-center">
+          <div className="bg-white rounded-lg p-1 shadow-sm border border-gray-200 flex flex-wrap gap-1">
             {timePeriods.map((period) => (
               <button
                 key={period.value}
-                onClick={() => setTimePeriod(period.value)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
+                onClick={() => {
+                  setTimePeriod(period.value);
+                  setIsCustomMode(false);
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }}
+                disabled={isCustomMode}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${!isCustomMode && timePeriod === period.value
                   ? 'bg-linear-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:cursor-pointer hover:text-gray-700 hover:scale-105'
-                  }`}
+                  : 'text-gray-600 hover:text-gray-700'
+                  } ${isCustomMode ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {period.label}
               </button>
             ))}
+
+            <button
+              onClick={() => setIsCustomMode(true)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isCustomMode
+                ? 'bg-linear-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-700'
+                }`}
+            >
+              Custom Range
+            </button>
+            {isCustomMode && (
+              <div className="flex gap-3 items-center  justify-center">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  required
+                />
+                <span className="text-gray-600">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  min={customStartDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  required
+                />
+                <button
+                  onClick={() => {
+                    if (!customStartDate || !customEndDate) {
+                      toast.error("Please select both start and end dates");
+                      return;
+                    }
+                    setTimePeriod('custom'); // we'll handle custom separately
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
