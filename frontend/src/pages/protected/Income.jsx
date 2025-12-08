@@ -506,7 +506,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="income-report.xsl"
         return;
       }
 
-      const timestamp = new Date().toISOString().split('T')[0];
+      const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
       const periodLabel = selectedPeriod === 'custom' ? 'custom' : selectedPeriod;
       let content, filename, mimeType;
 

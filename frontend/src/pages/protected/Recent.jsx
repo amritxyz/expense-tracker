@@ -147,20 +147,14 @@ export default function Recent() {
   const [timePeriod, setTimePeriod] = useState('weekly');
   const [isDownloading, setIsDownloading] = useState(false);
   const [reportFormat, setReportFormat] = useState('csv');
-  const [deleteCandidate, setDeleteCandidate] = useState(null);
 
   // Report download modal
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('weekly');
   const [dateSelected1, setDateSelected1] = useState(false);
   const [dateSelected2, setDateSelected2] = useState(false);
-
-  // For reports
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [isCustomMode, setIsCustomMode] = useState(false);
-
-  // const selectedItem = transactions.find(t => t.id === selectedItemId);
 
   const navigate = useNavigate();
 
@@ -199,7 +193,6 @@ export default function Recent() {
           prevTransactions.filter((transaction) => transaction.id !== id)
         );
         setIsDeleteModalOpen(false);
-        setDeleteCandidate(null);
       } else {
         toast.dismiss();
         toast.error(data.message || "Failed to delete the transaction.");
@@ -379,7 +372,7 @@ export default function Recent() {
     setIsEditModalOpen(true);
   };
 
-  // Time period options
+  // Time period options for GRAPH only
   const timePeriods = [
     { value: 'weekly', label: 'Weekly' },
     { value: 'monthly', label: 'Monthly' },
@@ -410,7 +403,7 @@ export default function Recent() {
 
   // Helper function to convert data to XML
   const convertToXML = (reportData, format = 'xml') => {
-    const { transactions, labels, incomePerPeriod, expensePerPeriod, periodType, dateRangeText } = reportData;
+    const { transactions, periodType, dateRangeText } = reportData;
 
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
     const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
@@ -441,15 +434,6 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
       <Date>${item.date}</Date>
     </Transaction>`).join('')}
   </Transactions>
-  <PeriodicData>
-    ${labels.map((label, i) => `
-    <Period>
-      <Label>${label}</Label>
-      <Income>${incomePerPeriod[i]}</Income>
-      <Expense>${expensePerPeriod[i]}</Expense>
-      <Net>${(incomePerPeriod[i] - expensePerPeriod[i]).toFixed(2)}</Net>
-    </Period>`).join('')}
-  </PeriodicData>
 </TransactionReport>`;
   };
 
@@ -463,15 +447,16 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
       case 'yearly':
         return 'Last 12 Months';
       case 'custom':
-        return 'Custom Range';
+        return customStartDate && customEndDate
+          ? `${customStartDate} to ${customEndDate}`
+          : 'Custom Range';
       default:
         return 'Last 7 Days';
     }
   };
 
-
   // Main download handler function
-  const handleDownloadReportWithModal = async () => {
+  const handleDownloadReport = async () => {
     if (selectedPeriod === 'custom' && (!customStartDate || !customEndDate)) {
       toast.error('Please select both start and end dates for custom range');
       return;
@@ -481,6 +466,8 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
 
     try {
       let filteredTransactions = transactions;
+      let periodType = selectedPeriod;
+      let dateRangeText = getPeriodLabel();
 
       // Apply date filtering based on selected period
       if (selectedPeriod === 'custom') {
@@ -513,16 +500,11 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
 
       const reportData = {
         transactions: filteredTransactions,
-        labels: [],
-        incomePerPeriod: [],
-        expensePerPeriod: [],
         periodType: selectedPeriod,
-        dateRangeText: selectedPeriod === 'custom'
-          ? `${customStartDate} to ${customEndDate}`
-          : getPeriodLabel()
+        dateRangeText: dateRangeText
       };
 
-      const timestamp = new Date().toISOString().split('T')[0];
+      const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
       const periodLabel = selectedPeriod === 'custom' ? 'custom' : selectedPeriod;
       let content, filename, mimeType;
 
@@ -572,78 +554,6 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
   };
 
   // Report
-  const getFilteredAndGroupedData = () => {
-    let filteredTransactions = transactions;
-
-    // Apply date filtering
-    if (isCustomMode && customStartDate && customEndDate) {
-      const start = new Date(customStartDate);
-      const end = new Date(customEndDate);
-      end.setHours(23, 59, 59, 999);
-
-      filteredTransactions = transactions.filter(t => {
-        const txDate = new Date(t.date);
-        return txDate >= start && txDate <= end;
-      });
-    } else {
-      // Default: recent period based on timePeriod
-      const daysBack = timePeriod === 'weekly' ? 7 : timePeriod === 'monthly' ? 30 : 365;
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - daysBack);
-
-      filteredTransactions = transactions.filter(t => new Date(t.date) >= cutoff);
-    }
-
-    // Now group by selected period (weekly/monthly/yearly)
-    const grouped = {};
-    const labels = [];
-    const incomeData = [];
-    const expenseData = [];
-
-    filteredTransactions.forEach(tx => {
-      const date = new Date(tx.date);
-      let key;
-
-      if (timePeriod === 'weekly' || (isCustomMode && timePeriod !== 'custom')) {
-        // Group by day (last 7 days or custom week)
-        key = date.toISOString().split('T')[0];
-      } else if (timePeriod === 'monthly' || (isCustomMode && timePeriod !== 'custom')) {
-        key = date.toISOString().split('T')[0]; // daily in month
-      } else {
-        // yearly or custom → group by month-year
-        key = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-      }
-
-      if (!grouped[key]) grouped[key] = { income: 0, expense: 0 };
-      if (tx.type === 'income') grouped[key].income += Number(tx.amount);
-      else grouped[key].expense += Number(tx.amount);
-    });
-
-    // Sort keys chronologically
-    Object.keys(grouped)
-      .sort((a, b) => new Date(a) - new Date(b))
-      .forEach(key => {
-        labels.push(key);
-        incomeData.push(grouped[key].income);
-        expenseData.push(grouped[key].expense);
-      });
-
-    return {
-      transactions: filteredTransactions,
-      labels,
-      incomePerPeriod: incomeData,
-      expensePerPeriod: expenseData,
-      periodType: isCustomMode ? 'custom' : timePeriod,
-      dateRangeText: isCustomMode
-        ? `${customStartDate} to ${customEndDate}`
-        : timePeriod === 'weekly'
-          ? 'Last 7 Days'
-          : timePeriod === 'monthly'
-            ? 'Last 30 Days'
-            : 'Last 12 Months'
-    };
-  };
-
   return (
     <section className="flex flex-col items-center space-y-6 ">
       <Warning data={{ totalBudget, totalIncome, totalExpense }} />
@@ -665,7 +575,6 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
           <div className="border border-gray-300 rounded-2xl p-4 bg-linear-to-r from-green-50 to-teal-50">
             <p className="text-gray-600 text-sm font-medium">Budget Left</p>
             <p className="text-lg font-bold text-green-600 mt-1">
-              {/* {isNaN(percentageBudget) || percentageBudget === Infinity ? "Nil" : Math.round(percentageBudget)} % */}
               {percentageBudget > 0 ? Math.round(percentageBudget) + "%" : "N/A"}
             </p>
           </div>
@@ -674,69 +583,21 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
 
       {/* Doughnut and Bar Charts */}
       <div className="border border-current/20 rounded-2xl w-[90%] p-4 bg-linear-to-r from-indigo-50 to-purple-50 ">
-        {/* Time Period Selector */}
+        {/* Time Period Selector - SIMPLIFIED (only Weekly, Monthly, Yearly) */}
         <div className="flex flex-wrap justify-center gap-3 mb-6 items-center">
           <div className="bg-white rounded-lg p-1 shadow-sm border border-gray-200 flex flex-wrap gap-1">
             {timePeriods.map((period) => (
               <button
                 key={period.value}
-                onClick={() => {
-                  setTimePeriod(period.value);
-                  setIsCustomMode(false);
-                  setCustomStartDate('');
-                  setCustomEndDate('');
-                }}
-                disabled={isCustomMode}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${!isCustomMode && timePeriod === period.value
+                onClick={() => setTimePeriod(period.value)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${timePeriod === period.value
                   ? 'bg-linear-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-700'
-                  } ${isCustomMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  : 'text-gray-600 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
               >
                 {period.label}
               </button>
             ))}
-
-            <button
-              onClick={() => setIsCustomMode(true)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isCustomMode
-                ? 'bg-linear-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-700'
-                }`}
-            >
-              Custom Range
-            </button>
-            {isCustomMode && (
-              <div className="flex gap-3 items-center  justify-center">
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  required
-                />
-                <span className="text-gray-600">to</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  min={customStartDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  required
-                />
-                <button
-                  onClick={() => {
-                    if (!customStartDate || !customEndDate) {
-                      toast.error("Please select both start and end dates");
-                      return;
-                    }
-                    setTimePeriod('custom'); // we'll handle custom separately
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
-                >
-                  Apply
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -860,7 +721,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
                   <EditButton onClick={() => openEditModal(item)} />
                   <DeleteButton
                     onClick={() => {
-                      setDeleteCandidate({ id: item.id, type: item.type });
+                      setSelectedItemId(item.id);
                       setIsDeleteModalOpen(true);
                     }}
                   />
@@ -898,28 +759,35 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
 
         <DeleteModal
           isOpen={isDeleteModalOpen}
-          onClose={() => {
-            setIsDeleteModalOpen(false);
-            setDeleteCandidate(null);
-          }}
+          onClose={() => setIsDeleteModalOpen(false)}
           onConfirm={() => {
-            if (deleteCandidate) {
-              handleDelete(deleteCandidate.id, deleteCandidate.type);
+            if (selectedItemId) {
+              const transaction = transactions.find(t => t.id === selectedItemId);
+              if (transaction) {
+                handleDelete(selectedItemId, transaction.type);
+              } else {
+                toast.error("Transaction not found");
+                setIsDeleteModalOpen(false);
+              }
             } else {
               toast.error("No transaction selected for deletion");
               setIsDeleteModalOpen(false);
             }
           }}
           itemName={
-            deleteCandidate
-              ? transactions.find(t => t.id === deleteCandidate.id)
-                ? transactions.find(t => t.id === deleteCandidate.id).type === 'income'
-                  ? transactions.find(t => t.id === deleteCandidate.id).inc_source
-                  : transactions.find(t => t.id === deleteCandidate.id).categories
+            selectedItemId
+              ? transactions.find(t => t.id === selectedItemId)
+                ? transactions.find(t => t.id === selectedItemId).type === 'income'
+                  ? transactions.find(t => t.id === selectedItemId).inc_source
+                  : transactions.find(t => t.id === selectedItemId).categories
                 : 'this item'
               : 'this item'
           }
-          itemType={deleteCandidate?.type || 'transaction'}
+          itemType={
+            selectedItemId
+              ? transactions.find(t => t.id === selectedItemId)?.type || 'transaction'
+              : 'transaction'
+          }
         />
       </div>
       {isDownloadModalOpen && (
@@ -936,7 +804,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
               </button>
             </div>
 
-            {/* Period Selection */}
+            {/* Period Selection - Includes Custom option */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-600 mb-3">Select Time Period</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -979,7 +847,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
               </div>
             </div>
 
-            {/* Custom Date Inputs */}
+            {/* Custom Date Inputs - Only shown when Custom is selected */}
             {selectedPeriod === 'custom' && (
               <div className="mb-6 p-4 bg-gray-50 rounded-xl">
                 <h3 className="text-lg font-semibold text-gray-600 mb-3">Select Custom Dates</h3>
@@ -1083,7 +951,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
                 Cancel
               </button>
               <button
-                onClick={handleDownloadReportWithModal}
+                onClick={handleDownloadReport}
                 disabled={isDownloading || (selectedPeriod === 'custom' && (!customStartDate || !customEndDate))}
                 className="flex-1 px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 cursor-pointer shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 group hover:scale-102"
               >
