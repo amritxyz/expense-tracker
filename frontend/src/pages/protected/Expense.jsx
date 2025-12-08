@@ -1112,7 +1112,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="expense-report.xsl
                                   onSelect={() => setDateSelected1(true)}
                                   onBlur={() => setDateSelected1(false)}
                                   onChange={(e) => setCustomStartDate(e.target.value)}
-                                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 hover:text-gray-800 ${dateSelected1 ? 'text-gray-800' : 'text-gray-600'
+                                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-200 outline-none focus:border-red-200 hover:text-gray-800 ${dateSelected1 ? 'text-gray-800' : 'text-gray-600'
                                     }`}
                                   max={new Date().toISOString().split('T')[0]}
                                 />
@@ -1129,7 +1129,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="expense-report.xsl
                                   onMouseOut={() => setDateSelected2(false)}
                                   min={customStartDate}
                                   max={new Date().toISOString().split('T')[0]}
-                                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 hover:text-gray-800 ${dateSelected2 ? 'text-gray-800' : 'text-gray-600'
+                                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-200 outline-none focus:border-red-200 hover:text-gray-800 ${dateSelected2 ? 'text-gray-800' : 'text-gray-600'
                                     }`}
                                 />
                               </div>
