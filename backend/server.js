@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 
 const Database = require('better-sqlite3');
 const path = require('path');
@@ -51,15 +52,21 @@ app.post('/register', (req, res) => {
     return res.status(400).json({ message: 'Full Name, Email and Password are required' });
   }
 
+  if (!validator.isEmail(email)) {
+    return res.status(600).json({ message: "Invalid email format" });
+  }
+
   try {
+    const existingUser = get_user_by_email(email);
+    if (existingUser) {
+      return res.status(409).json({
+        message: "This email is already registered. Please use a different email or login."
+      })
+    }
+
     insert_user(user_name, email, password);
     res.status(200).json({ message: 'User registered successfully' });
   } catch (err) {
-    if (err.message.includes('UNIQUE constraint failed') || err.code === 'SQLITE_CONSTRAINT') {
-      return res.status(409).json({
-        message: 'This email is already registered. Please use a different email or login.'
-      });
-    }
     res.status(500).json({ message: 'Error registering user', error: err.message });
   }
 });

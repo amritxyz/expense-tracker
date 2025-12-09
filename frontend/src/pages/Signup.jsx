@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import "./login.css";
 
 const Signup = () => {
-  const { register } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,10 +29,39 @@ const Signup = () => {
     user: Yup.string()
       .required("Full Name is required")
       .min(4, "Full Name must be at least 4 characters")
-      .max(40, "Full Name cannot exceed 40 characters"),
+      .max(25, "Full Name cannot exceed 25 characters"),
     email: Yup.string()
       .email("Invalid email format")
-      .required("Email is required"),
+      .required("Email is required")
+      .test(
+        'no-only-numbers',
+        'Email cannot contain only numbers',
+        value => {
+          // Get the part before the @ symbol
+          const emailWithoutDomain = value.split('@')[0];
+          // Must contain at least one letter in the part before @
+          return /[a-zA-Z]/.test(emailWithoutDomain);
+        }
+      )
+      .test(
+        'no-special-symbols',
+        'Email cannot contain special characters other than "@"',
+        value => {
+          // Allow only letters, numbers, dots, hyphens, and underscores in the local part of the email
+          const localPart = value.split('@')[0];
+          return /^[a-zA-Z0-9._-]+$/.test(localPart);
+        }
+      )
+      .test(
+        'single-at-symbol',
+        'Email should contain exactly one "@" symbol',
+        value => {
+          // Ensure there is only one @ symbol in the email
+          const atSymbolCount = (value.match(/@/g) || []).length;
+          return atSymbolCount === 1;
+        }
+      ),
+
     password: Yup.string()
       .required("Password is required")
       .min(6, "Password must be at least 6 characters"),
@@ -40,12 +69,15 @@ const Signup = () => {
 
   const onSubmit = async (values, { setSubmitting }) => {
     try {
-      const result = await register(values.user, values.email, values.password);
+      const result_register = await register(values.user, values.email, values.password);
+      await login(values.email, values.password);
 
-      if (result.success) {
+      if (result_register.success) {
         toast.loading("Registering...!");
         setTimeout(() => toast.success("Registration successfully."), 400);
-        setTimeout(() => navigate('/login'), 1000); // Redirect to login after registration
+        setTimeout(() => toast.dismiss(), 800);
+        setTimeout(() => toast.loading("Logging in...!"), 1200);
+        setTimeout(() => navigate('/dashboard'), 2000); // Redirect to login after registration
       } else {
         toast.error(result.message);
       }
