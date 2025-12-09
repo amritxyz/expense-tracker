@@ -295,55 +295,49 @@ app.put('/profile', authenticateJWT, (req, res) => {
   }
 });
 
-// DELETE /profile — Delete current user's profile and all associated data (sequential approach)
-app.delete('/profile', authenticateJWT, (req, res) => {
+// DELETE /profile — Delete current user's profile and all associated data
+app.delete('/profile', authenticateJWT, async (req, res) => {
   const user_id = req.user.id;
 
   try {
-    // Start transaction
-    db.prepare('BEGIN TRANSACTION').run();
+    // Delete expenses
+    const deleteExpensesSql = `DELETE FROM expense WHERE user_id = ?`;
+    const expenseResult = db.prepare(deleteExpensesSql).run(user_id);
+    console.log(`Deleted ${expenseResult.changes} expense records`);
 
-    try {
-      // Delete expenses
-      const deleteExpensesSql = `DELETE FROM expense WHERE user_id = ?`;
-      const expenseResult = db.prepare(deleteExpensesSql).run(user_id);
-      console.log(`Deleted ${expenseResult.changes} expense records`);
+    // Delete income
+    const deleteIncomeSql = `DELETE FROM income WHERE user_id = ?`;
+    const incomeResult = db.prepare(deleteIncomeSql).run(user_id);
+    console.log(`Deleted ${incomeResult.changes} income records`);
 
-      // Delete income
-      const deleteIncomeSql = `DELETE FROM income WHERE user_id = ?`;
-      const incomeResult = db.prepare(deleteIncomeSql).run(user_id);
-      console.log(`Deleted ${incomeResult.changes} income records`);
+    // Delete avatar
+    delete_user_avatar(user_id);
 
-      // Delete avatar
-      delete_user_avatar(user_id);
+    // Delete user
+    const deleteUserSql = `DELETE FROM login_users WHERE id = ?`;
+    const userResult = db.prepare(deleteUserSql).run(user_id);
 
-      // Delete user
-      const deleteResult = delete_user_by_id(user_id);
+    console.log(`Deleted ${userResult.changes} user record(s)`);
 
-      if (!deleteResult.success) {
-        throw new Error(deleteResult.message);
-      }
-
-      // Commit transaction
-      db.prepare('COMMIT').run();
-
+    if (userResult.changes > 0) {
       res.status(200).json({
         message: 'User profile and all associated data deleted successfully',
         success: true
       });
-
-    } catch (innerErr) {
-      // Rollback on any error
-      db.prepare('ROLLBACK').run();
-      throw innerErr;
+    } else {
+      res.status(404).json({
+        message: 'User not found',
+        success: false
+      });
     }
 
   } catch (err) {
     console.error("Error deleting user profile:", err.message);
 
-    if (err.message.includes('User not found')) {
-      return res.status(404).json({
-        message: 'User not found',
+    // Check for specific error types
+    if (err.message.includes('database is locked')) {
+      return res.status(503).json({
+        message: "Service temporarily unavailable due to database lock",
         success: false
       });
     }

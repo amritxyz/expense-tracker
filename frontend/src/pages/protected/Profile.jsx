@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 
 import VerticalNavbar from "./VerticalNavbar"
@@ -18,6 +19,8 @@ export default function ProfileSection() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
@@ -211,18 +214,45 @@ export default function ProfileSection() {
   // Delete Account
   const handleDelete = async () => {
     setIsDeleting(true);
+
     try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
       const res = await fetch("http://localhost:5000/profile", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
-      if (res.ok) {
-        localStorage.removeItem("token");
-        toast.success("Account deleted");
-        setTimeout(() => (window.location.href = "/login"), 1500);
+
+      console.log("Delete response status:", res.status);
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
       }
-    } catch {
-      toast.error("Failed to delete");
+
+      if (res.ok) {
+        // SUCCESS
+        localStorage.removeItem("token");
+        toast.success("Account deleted successfully!");
+        navigate("/login");
+      } else {
+        // FAILURE
+        const errorMessage = data.message || `Error: ${res.status}`;
+        toast.error(errorMessage);
+      }
+
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Network error - unable to connect to server");
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
