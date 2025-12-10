@@ -29,7 +29,8 @@ const Signup = () => {
     user: Yup.string()
       .required("Full Name is required")
       .min(4, "Full Name must be at least 4 characters")
-      .max(25, "Full Name cannot exceed 25 characters"),
+      .max(25, "Full Name cannot exceed 25 characters")
+      .matches(/^[A-Za-z\s]+$/, "Please don't include any special characters"),
     email: Yup.string()
       .email("Invalid email format")
       .required("Email is required")
@@ -68,21 +69,38 @@ const Signup = () => {
   });
 
   const onSubmit = async (values, { setSubmitting }) => {
+    setSubmitting(true);
+
     try {
       const result_register = await register(values.user, values.email, values.password);
-      await login(values.email, values.password);
 
-      if (result_register.success) {
-        toast.loading("Registering...!");
-        setTimeout(() => toast.success("Registration successfully."), 400);
-        setTimeout(() => toast.dismiss(), 800);
-        setTimeout(() => toast.loading("Logging in...!"), 1200);
-        setTimeout(() => navigate('/dashboard'), 2000); // Redirect to login after registration
+      if (!result_register.success) {
+        toast.error(result_register.message);
+        if (result_register.message === "User already exists. Please log in.") {
+          setTimeout(() => navigate('/login'), 2000); // Redirect to login after showing error
+        }
+        return;
+      }
+
+      const result_login = await login(values.email, values.password);
+
+      if (result_login.success) {
+        toast.loading("Registering...");
+
+        setTimeout(() => {
+          toast.success("Registration successful!");
+          toast.loading("Logging in...");
+        }, 400);
+
+        setTimeout(() => {
+          toast.success("Login successful!");
+          navigate('/dashboard');
+        }, 1200);
       } else {
-        toast.error(result.message);
+        toast.error("Login failed after registration.");
       }
     } catch (error) {
-      toast.error("Error registering user: " + (error.response?.data?.message || error.message));
+      toast.error(`Error: ${error.message || "An unexpected error occurred."}`);
     } finally {
       setSubmitting(false);
     }
