@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import "./login.css";
 
 const Signup = () => {
-  const { register } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,28 +29,78 @@ const Signup = () => {
     user: Yup.string()
       .required("Full Name is required")
       .min(4, "Full Name must be at least 4 characters")
-      .max(40, "Full Name cannot exceed 40 characters"),
+      .max(25, "Full Name cannot exceed 25 characters")
+      .matches(/^[A-Za-z\s]+$/, "Please don't include any special characters"),
     email: Yup.string()
       .email("Invalid email format")
-      .required("Email is required"),
+      .required("Email is required")
+      .test(
+        'no-only-numbers',
+        'Email cannot contain only numbers',
+        value => {
+          // Get the part before the @ symbol
+          const emailWithoutDomain = value.split('@')[0];
+          // Must contain at least one letter in the part before @
+          return /[a-zA-Z]/.test(emailWithoutDomain);
+        }
+      )
+      .test(
+        'no-special-symbols',
+        'Email cannot contain special characters other than "@"',
+        value => {
+          // Allow only letters, numbers, dots, hyphens, and underscores in the local part of the email
+          const localPart = value.split('@')[0];
+          return /^[a-zA-Z0-9._-]+$/.test(localPart);
+        }
+      )
+      .test(
+        'single-at-symbol',
+        'Email should contain exactly one "@" symbol',
+        value => {
+          // Ensure there is only one @ symbol in the email
+          const atSymbolCount = (value.match(/@/g) || []).length;
+          return atSymbolCount === 1;
+        }
+      ),
+
     password: Yup.string()
       .required("Password is required")
       .min(6, "Password must be at least 6 characters"),
   });
 
   const onSubmit = async (values, { setSubmitting }) => {
-    try {
-      const result = await register(values.user, values.email, values.password);
+    setSubmitting(true);
 
-      if (result.success) {
-        toast.loading("Registering...!");
-        setTimeout(() => toast.success("Registration successfully."), 400);
-        setTimeout(() => navigate('/login'), 1000); // Redirect to login after registration
+    try {
+      const result_register = await register(values.user, values.email, values.password);
+
+      if (!result_register.success) {
+        toast.error(result_register.message);
+        if (result_register.message === "User already exists. Please log in.") {
+          setTimeout(() => navigate('/login'), 2000); // Redirect to login after showing error
+        }
+        return;
+      }
+
+      const result_login = await login(values.email, values.password);
+
+      if (result_login.success) {
+        toast.loading("Registering...");
+
+        setTimeout(() => {
+          toast.success("Registration successful!");
+          toast.loading("Logging in...");
+        }, 400);
+
+        setTimeout(() => {
+          toast.success("Login successful!");
+          navigate('/dashboard');
+        }, 1200);
       } else {
-        toast.error(result.message);
+        toast.error("Login failed after registration.");
       }
     } catch (error) {
-      toast.error("Error registering user: " + (error.response?.data?.message || error.message));
+      toast.error(`Error: ${error.message || "An unexpected error occurred."}`);
     } finally {
       setSubmitting(false);
     }

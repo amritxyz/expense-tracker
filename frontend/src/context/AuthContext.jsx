@@ -120,6 +120,12 @@ export const AuthProvider = ({ children }) => {
       });
       return { success: true, message: response.data.message || 'Registered successfully' };
     } catch (err) {
+      // 409 (User already exists)
+      if (err.response?.status === 409) {
+        setError("User already exists. Please log in.");
+        return { success: false, message: "User already exists. Please log in." };
+      }
+
       const errorMessage = err.response?.data?.message || 'Registration failed';
       setError(errorMessage);
       return { success: false, message: errorMessage };
