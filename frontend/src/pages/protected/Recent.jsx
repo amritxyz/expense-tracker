@@ -462,8 +462,6 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
         return 'Last 30 Days';
       case 'yearly':
         return 'Last 12 Months';
-      case 'custom':
-        return 'Custom Range';
       default:
         return 'Last 7 Days';
     }
@@ -517,8 +515,8 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
         incomePerPeriod: [],
         expensePerPeriod: [],
         periodType: selectedPeriod,
-        dateRangeText: selectedPeriod === 'custom'
-          ? `${customStartDate} to ${customEndDate}`
+        dateRangeText: selectedPeriod === 'weekly'
+          ? `${customStartDate} to 'weekly'`
           : getPeriodLabel()
       };
 
@@ -696,15 +694,6 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
               </button>
             ))}
 
-            <button
-              onClick={() => setIsCustomMode(true)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isCustomMode
-                ? 'bg-linear-to-tr from-blue-500 to-purple-600 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-700'
-                }`}
-            >
-              Custom Range
-            </button>
             {isCustomMode && (
               <div className="flex gap-3 items-center  justify-center">
                 <input
