@@ -462,6 +462,8 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
         return 'Last 30 Days';
       case 'yearly':
         return 'Last 12 Months';
+      case 'custom':
+        return 'Custom Range';
       default:
         return 'Last 7 Days';
     }
@@ -515,8 +517,8 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
         incomePerPeriod: [],
         expensePerPeriod: [],
         periodType: selectedPeriod,
-        dateRangeText: selectedPeriod === 'weekly'
-          ? `${customStartDate} to 'weekly'`
+        dateRangeText: selectedPeriod === 'custom'
+          ? `${customStartDate} to ${customEndDate}`
           : getPeriodLabel()
       };
 
@@ -693,39 +695,6 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
                 {period.label}
               </button>
             ))}
-
-            {isCustomMode && (
-              <div className="flex gap-3 items-center  justify-center">
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  required
-                />
-                <span className="text-gray-600">to</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  min={customStartDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  required
-                />
-                <button
-                  onClick={() => {
-                    if (!customStartDate || !customEndDate) {
-                      toast.error("Please select both start and end dates");
-                      return;
-                    }
-                    setTimePeriod('custom'); // we'll handle custom separately
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
-                >
-                  Apply
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
