@@ -6,7 +6,7 @@
 ## Installation
 
 ```bash
-git clone --depth=1 https://github.com/amritxyz/expense-tracker.git
+git clone --depth=1 https://codeberg.org/amritxyz/expense-tracker.git
 npm install # NOTE: first cd into frontend and backend directory
 ```
 
