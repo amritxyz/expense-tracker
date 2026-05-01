@@ -27,10 +27,10 @@ export default function VerticalNavbar() {
       const res = await fetch("http://localhost:5000/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         setUser(data);
-        // avatar setting logic in both files
+        // Set avatar with full URL if it exists
         if (data.avatar) {
           setAvatar(`http://localhost:5000/profile/avatar/${data.id}`);
         }

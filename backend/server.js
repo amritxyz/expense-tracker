@@ -43,7 +43,7 @@ create_avatar_table();
 // Function to generate JWT token
 function generateToken(user) {
   const payload = { id: user.id, email: user.email };  // Include user ID and email in the token
-  const secret = "your_jwt_secret_key";
+  const secret = "123456789";
   const options = { expiresIn: "100h" };  // Token expiration time
   return jwt.sign(payload, secret, options);
 }
@@ -122,7 +122,7 @@ const authenticateJWT = (req, res, next) => {
   if (!token) return res.status(403).json({ message: "Access denied" });
 
   /* Verify the JWT token */
-  jwt.verify(token, "your_jwt_secret_key", (err, decoded) => {
+  jwt.verify(token, "123456789", (err, decoded) => {
     if (err) return res.status(401).json({ message: "Invalid token" });
     req.user = decoded;  /* Store decoded user info in request object */
     next();
@@ -275,8 +275,8 @@ app.delete("/income/:id", authenticateJWT, async (req, res) => {
 });
 
 // GET /profile — Get current user's profile
-app.get("/profile", authenticateJWT, (req, res) => {
-  const user = get_user_profile_by_id(req.user.id);
+app.get("/profile", authenticateJWT, async (req, res) => {
+  const user = await get_user_profile_by_id(req.user.id);
   if (!user) return res.status(404).json({ message: "User not found" });
   res.json(user);
 });
@@ -355,7 +355,7 @@ app.delete("/profile", authenticateJWT, async (req, res) => {
 });
 
 // PUT /profile/password — Update user's password
-app.put("/profile/password", authenticateJWT, (req, res) => {
+app.put("/profile/password", authenticateJWT, async (req, res) => {
   const user_id = req.user.id;
   const { currentPassword, newPassword } = req.body;
 
@@ -377,7 +377,7 @@ app.put("/profile/password", authenticateJWT, (req, res) => {
 
   try {
     // Call the password update function
-    const result = update_user_password_by_id(user_id, currentPassword, newPassword);
+    const result = await update_user_password_by_id(user_id, currentPassword, newPassword);
 
     if (result.success) {
       res.status(200).json({

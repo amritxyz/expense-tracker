@@ -112,7 +112,7 @@ async function update_user_password_by_id(id, current_password, new_password) {
     if (!user) return { success: false, message: "User not found." };
     const full_user = await pool.query(sql, [id]);
 
-    if (full_user.password !== current_password) {
+    if (full_user.rows[0].password !== current_password) {
       return { success: false, message: "Wrong password" };
     }
 
@@ -120,9 +120,9 @@ async function update_user_password_by_id(id, current_password, new_password) {
     const result = await pool.query(new_sql, [new_password, id]);
 
     return {
-      success: result.changes > 0,
-      changes: result.changes,
-      message: result.changes > 0 ? "Password updated successfully" : "Failed to update password"
+      success: result.rowCount > 0,
+      changes: result.rowCount,
+      message: result.rowCount > 0 ? "Password updated successfully" : "Failed to update password"
     };
 
   } catch (err) {
