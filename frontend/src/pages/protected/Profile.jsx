@@ -123,13 +123,9 @@ export default function ProfileSection() {
       .then((res) => res.json())
       .then((data) => {
         if (data.avatarUrl) {
-          // Ensure we have the full URL
-          const fullAvatarUrl = data.avatarUrl.startsWith('http')
-            ? data.avatarUrl
-            : `http://localhost:5000${data.avatarUrl}`;
-
-          setUser({ ...user, avatar: fullAvatarUrl });
-          setAvatarPreview(fullAvatarUrl);
+          const avatar_url = `http://localhost:5000/profile/avatar/${user.id}?t=${Date.now()}`;
+          setUser({ ...user, avatar: true });
+          setAvatarPreview(avatar_url);
           toast.success("Avatar updated!");
         } else {
           toast.error(data.message || "Upload failed");
@@ -189,8 +185,8 @@ export default function ProfileSection() {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify({
-            currentPassword: values.current,
-            newPassword: values.new,
+            current_password: values.current,
+            new_password: values.new,
           }),
         });
         if (res.ok) {

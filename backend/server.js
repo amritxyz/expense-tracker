@@ -357,27 +357,36 @@ app.delete("/profile", authenticateJWT, async (req, res) => {
 // PUT /profile/password — Update user's password
 app.put("/profile/password", authenticateJWT, async (req, res) => {
   const user_id = req.user.id;
-  const { currentPassword, newPassword } = req.body;
+  const { current_password, new_password } = req.body;
 
   // Validate input
-  if (!currentPassword || !newPassword) {
+  if (!current_password || !new_password) {
     return res.status(400).json({
       message: "Current password and new password are required",
       success: false
     });
   }
 
+  if (current_password === new_password) {
+    return res.json({
+      message: "New password must be different from old one",
+      success: false
+    });
+  }
+
   // Validate new password length
-  if (newPassword.length < 6) {
+  if (new_password.length < 6) {
     return res.status(400).json({
       message: "New password must be at least 6 characters long",
       success: false
     });
   }
+  console.log("[DEBUG] current password", current_password);
+  console.log("[DEBUG] new password", new_password);
 
   try {
     // Call the password update function
-    const result = await update_user_password_by_id(user_id, currentPassword, newPassword);
+    const result = await update_user_password_by_id(user_id, current_password, new_password);
 
     if (result.success) {
       res.status(200).json({
@@ -401,73 +410,51 @@ app.put("/profile/password", authenticateJWT, async (req, res) => {
 });
 
 // Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, avatarsDir);
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
-    cb(null, "avatar-" + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: function(req, file, cb) {
-    if (file.mimetype.startsWith("image/")) {
+    if (file.mimetype.startsWith("image/"))
       cb(null, true);
-    } else {
+    else
       cb(new Error("Only image files are allowed!"), false);
-    }
   }
 });
 
 // Avatar upload route
-app.post("/profile/avatar", authenticateJWT, upload.single("avatar"), (req, res) => {
+app.post("/profile/avatar", authenticateJWT, upload.single("avatar"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const user_id = req.user.id;
-    const avatar_filename = req.file.filename;
-    const avatar_url = `/avatars/${avatar_filename}`;
-
     // Save to database
-    const result = upsert_user_avatar(user_id, avatar_filename, avatar_url);
+    const result = await upsert_user_avatar(req.user.id, req.file.buffer, req.file.mimetype);
 
     if (result.success) {
       res.status(200).json({
         message: "Avatar uploaded successfully",
-        avatarUrl: avatar_url,
-        action: result.action
+        avatarUrl: `/profile/avatar/${req.user.id}`,
       });
     } else {
-      // Delete the uploaded file if database operation failed
-      fs.unlinkSync(req.file.path);
       res.status(500).json({ message: "Failed to save avatar" });
     }
   } catch (err) {
-    // Delete the uploaded file if error occurred
-    if (req.file) {
-      fs.unlinkSync(req.file.path);
-    }
     console.error("Error uploading avatar:", err);
     res.status(500).json({ message: "Error uploading avatar", error: err.message });
   }
 });
 
 // Serve avatar files statically
-app.use("/avatars", express.static(path.join(__dirname, "uploads/avatars")));
+// app.use("/avatars", express.static(path.join(__dirname, "uploads/avatars")));
 
 // Delete avatar route
-app.delete("/profile/avatar", authenticateJWT, (req, res) => {
+app.delete("/profile/avatar", authenticateJWT, async (req, res) => {
   try {
     const user_id = req.user.id;
-    const result = delete_user_avatar(user_id);
+    const result = await delete_user_avatar(user_id);
 
     if (result.success) {
       res.status(200).json({ message: "Avatar deleted successfully" });
@@ -477,6 +464,17 @@ app.delete("/profile/avatar", authenticateJWT, (req, res) => {
   } catch (err) {
     console.error("Error deleting avatar:", err);
     res.status(500).json({ message: "Error deleting avatar", error: err.message });
+  }
+});
+
+app.get("/profile/avatar/:user_id", async (req, res) => {
+  try {
+    const avatar = await get_avatar_by_user_id(req.params.user_id);
+    if (!avatar) return res.status(400).json({ message: "No avatar found" });
+    res.set("Content-Type", avatar.mime_type);
+    res.send(avatar.avatar_data);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching avatar", error: err.message });
   }
 });
 

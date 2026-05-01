@@ -18,9 +18,9 @@ async function create_avatar_table() {
   `;
   try {
     await pool.query(sql);
-    console.log(`[✓] Table user_avatars created or already exists.`);
+    console.log(`[INFO] Table user_avatars created or already exists.`);
   } catch (err) {
-    console.error(`[x] Failed to create avatar table: `, err.message);
+    console.error(`[ERROR] Failed to create avatar table: `, err.message);
   }
 }
 
