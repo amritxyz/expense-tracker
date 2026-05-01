@@ -70,7 +70,7 @@ async function get_user_by_id(id) {
     ;
 
   const result = await pool.query(sql, [id]);
-  return result.rows[0];
+  return result;
 }
 
 /* INFO Update user_name and email by id */
@@ -78,7 +78,7 @@ async function update_user_by_id(id, user_name, email) {
   const sql = `UPDATE ${table_name} SET user_name = $1, email = $2 WHERE id = $3`;
 
   const result = await pool.query(sql, [user_name, email, id]);
-  return { changes: result.changes };
+  return result;
 }
 
 /* INFO Delete user by id */

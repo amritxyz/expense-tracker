@@ -292,8 +292,8 @@ app.put("/profile", authenticateJWT, async (req, res) => {
 
   const result = await update_user_by_id(user_id, user_name, email);
   if (result.rowCount > 0) {
-    const updated = get_user_by_id(user_id);
-    res.json({ message: "Profile updated", user: updated });
+    const updated = await get_user_by_id(user_id);
+    res.json({ message: "Profile updated", user: updated.rows[0] });
   } else {
     res.status(404).json({ message: "Update failed" });
   }
