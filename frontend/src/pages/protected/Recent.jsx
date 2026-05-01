@@ -725,7 +725,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="transactions-repor
 
                 {/* Transaction Date */}
                 <div className="w-32">
-                  <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date}</p>
+                  <p className="text-[12px] text-gray-900 capitalize font-medium">{item.date.slice(0, 10)}</p>
                 </div>
 
                 {/* Right: Buttons + Amount */}

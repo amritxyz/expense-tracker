@@ -1271,7 +1271,7 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="expense-report.xsl
                         {/* Date — fixed width like in your original */}
                         <div className="w-32">
                           <p className="text-[12px] text-gray-900 capitalize font-medium">
-                            {item.date}
+                            {item.date.slice(0, 10)}
                           </p>
                         </div>
 

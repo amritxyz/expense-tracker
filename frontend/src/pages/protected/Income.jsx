@@ -939,10 +939,11 @@ ${format === 'xslt' ? '<?xml-stylesheet type="text/xsl" href="income-report.xsl"
                           </p>
                         </div>
 
-                        {/* Date — fixed width to align with expense/date column */}
+                        {/* Date with expense/date column */}
                         <div className="w-32">
                           <p className="text-[12px] text-gray-900 capitalize font-medium">
-                            {item.date}
+                            { /*item.date.split('T')[0] */ }
+                            {item.date.slice(0, 10) }
                           </p>
                         </div>
 
