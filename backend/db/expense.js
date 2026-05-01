@@ -1,59 +1,36 @@
 // backend/db/expense_income.js
 
-const Database = require('better-sqlite3');
-const path = require('path');
+const pool = require("./db.js");
 
-/*
- * INFO: Define the database path
- */
-const dbPath = path.join(__dirname, 'database.db');
-const db = new Database(dbPath, { verbose: console.log });
 
 /*
  * INFO: Define table attributes and create table if not exists
  */
 const expense_table = 'expense';
-const first_attr = 'id';
-const second_attr = 'categories';
-const third_attr = 'amount';
-const extra_attr = 'date';
-const userid_attr = 'user_id';
 
-const expense_attributes = `
-  ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
-  ${userid_attr} INTEGER NOT NULL,
-  ${second_attr}  TEXT NOT NULL,
-  subcategories  TEXT NOT NULL,
-  ${third_attr}  INTEGER NOT NULL,
-  ${extra_attr}   DATETIME,
-  FOREIGN KEY (user_id) REFERENCES login_users(id)
-`;
-
-/*
- * TODO: feature to add income or set budget and show report and warning accordingly
- */
-// const income_table = 'income';
-// const income_attributes = `
-//   ${first_attr}   INTEGER PRIMARY KEY AUTOINCREMENT,
-//   ${second_attr}  TEXT NOT NULL,
-//   ${third_attr}  INTEGER NOT NULL,
-//   ${extra_attr}   DATETIME DEFAULT
-// `;
+/* TODO feature to add income or set budget and show report and warning accordingly */
 
 /*
  * INFO: Function to create table if it doesn't exist
  */
-function create_expense_table() {
+
+async function create_expense_table() {
   const sql = `
     CREATE TABLE IF NOT EXISTS ${expense_table} (
-      ${expense_attributes}
+      id            SERIAL PRIMARY KEY,
+      user_id       INTEGER NOT NULL REFERENCES login_users(id),
+      categories    TEXT NOT NULL,
+      subcategories TEXT NOT NULL,
+      amount        INTEGER NOT NULL,
+      date          TIMESTAMPTZ
     )
   `;
+
   try {
-    db.prepare(sql).run();
-    console.log(`[✓] Table ${expense_table} created or already exists.`);
+    await pool.query(sql);
+    console.log(`[INFO] Table ${expense_table} created or already exists.`)
   } catch (err) {
-    console.error(`[x] Failed to create table: `, err.message);
+    console.error("[ERROR] Failed to create table.", err.message);
   }
 }
 
@@ -75,69 +52,74 @@ function create_expense_table() {
 //   }
 // }
 
-/*
- * INFO: Function to insert a expense
- */
-function insert_expense(user_id, amount, categories, subcategories, date) {
+/* INFO Function to insert a expense */
+async function insert_expense(user_id, amount, categories, subcategories, date) {
   const sql = `
     INSERT INTO ${expense_table} (user_id, amount, categories, subcategories, date)
-    VALUES (?, ?, ?, ?, ?)
+    VALUES ($1, $2, $3, $4, $5)
   `;
+  const values = [user_id, amount, categories, subcategories, date];
+
   try {
-    const result = db.prepare(sql).run(user_id, amount, categories, subcategories, date);
-    console.log(`[✓] Inserted expense with ID: ${result.lastInsertRowid}`);
+    const result = await pool.query(sql, values);
+    console.log(`[SUCCESS] Inserted expense with ID: ${result.rowCount}`);
   } catch (err) {
-    console.error(`[x] Failed to insert expense: `, err.message);
+    console.error("[ERROR] Failed to insert expense: ", err.message);
   }
 }
 
-function edit_expenses_by_user(user_id, expense_id, amount, categories, subcategories, date) {
+/* INFO Edit expense table by user_id & id */
+async function edit_expenses_by_user(user_id, expense_id, amount, categories, subcategories, date) {
   const sql = `
     UPDATE ${expense_table}
-    SET amount = ?, categories = ?, subcategories = ?, date = ?
-    WHERE user_id = ? AND id = ?`;
+    SET amount = $1, categories = $2, subcategories = $3, date = $4
+    WHERE user_id = $5 AND id = $6
+    `;
+  const values = [amount, categories, subcategories, date, user_id, id];
 
   try {
-    const result = db.prepare(sql).run(amount, categories, subcategories, date, user_id, expense_id);
+    const result = await pool.query(sql, values);
     if (result.changes > 0) {
-      console.log(`[✓] Updated expense with ID: ${expense_id}`);
-      return { success: true, message: "Expense updated successfully." };
+      console.log(`[SUCCESS] Updated expense with ID: ${expense_id}`);
+      return { success: true, message: "Expense updated successfully" };
     } else {
-      console.log(`[x] No expense found with ID: ${expense_id} for user ID: ${user_id}`);
-      return { success: false, message: "Expense not found or not updated." };
+      console.error(`[WARN] No expense found with ID: ${expense_id} for user ID: ${user_id}`);
+      return { success: false, message: "Expense not found or not updated" };
     }
   } catch (err) {
-    console.error(`[x] Failed to update expense: `, err.message);
+    console.error(`[ERROR] Failed to update expense`, err.message);
     return { success: false, message: err.message };
   }
 }
 
-/*
- * INFO: Function to get expense table attributes
- */
-function get_expense() {
+/* INFO Function to get expense table attributes */
+async function get_expense() {
   const sql = `SELECT * FROM ${expense_table}`;
+
   try {
-    const rows = db.prepare(sql).all();
-    console.log(`[✓] All expenses: `, rows);
-    return rows;
+    const result = await pool.query(sql);
+    console.log("[INFO] All expense: ", result);
+    return result.rows;
   } catch (err) {
-    console.error(`[x] Failed to fetch expenses: `, err.message);
+    console.errror("[ERROR] Failed to fetch expense: ", err.message);
   }
 }
 
-function get_expense_by_categorie(categories) {
-  return db.prepare(`SELECT * FROM ${expense_table} WHERE categories = ?`).get(categories);
+/* INFO Get expenses by categories */
+async function get_expense_by_categorie(categories) {
+  return await pool.query(`SELECT * FROM ${expense_table} WHERE categories = $1`, [categories]);
 }
 
-function get_expenses_by_user(user_id) {
-  const sql = `SELECT * FROM ${expense_table} WHERE user_id = ?`;
+/* INFO Get expenses by user_id */
+async function get_expenses_by_user(user_id) {
+  const sql = `SELECT * FROM ${expense_table} WHERE user_id = $1`;
   try {
-    const rows = db.prepare(sql).all(user_id);
-    console.log(`[✓] Expenses for user ${user_id}: `, rows);
-    return rows;
+    const result = await pool.query(sql, [user_id]);
+    console.log(`[INFO] Expenses for user ${user_id}: `, result.rows);
+    return result.rows;
   } catch (err) {
-    console.error(`[x] Failed to fetch expenses for user: `, err.message);
+    console.error(`[INFO] Failed to fetch expenses for user: `, err.message);
+    throw err;
   }
 }
 

@@ -1,37 +1,41 @@
 /* backend/server.js */
 
-const express = require('express');
-const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const validator = require('validator');
+const express = require("express");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const validator = require("validator");
 
-const Database = require('better-sqlite3');
-const path = require('path');
-const dbPath = path.join(__dirname, './db/database.db');
-const db = new Database(dbPath, { verbose: console.log });
+// const Database = require("better-sqlite3");
+const path = require("path");
+// const dbPath = path.join(__dirname, "./db/database.db");
+// const db = new Database(dbPath, { verbose: console.log });
 
-const multer = require('multer')
-const fs = require('fs')
+const pool = require("./db/db.js");
 
-const { create_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id, get_user_profile_by_id } = require('./db/login_statements');
-const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user, edit_expenses_by_user } = require('./db/expense');
-const { create_income_table, insert_income, get_income, get_income_by_user, edit_income_by_id } = require('./db/income');
-const { create_avatar_table, upsert_user_avatar, get_avatar_by_user_id, delete_user_avatar, avatarsDir } = require('./db/avatar');
+const multer = require("multer")
+const fs = require("fs")
+
+const { create_user_table, insert_user, get_users, get_user_by_email, get_user_by_id, update_user_by_id, delete_user_by_id, update_user_password_by_id, get_user_profile_by_id } = require("./db/login_statements");
+const { create_expense_table, insert_expense, get_expense, get_expense_by_categorie, get_expenses_by_user, edit_expenses_by_user } = require("./db/expense");
+const { create_income_table, insert_income, get_income, get_income_by_user, edit_income_by_id } = require("./db/income");
+const { create_avatar_table, upsert_user_avatar, get_avatar_by_user_id, delete_user_avatar, avatarsDir } = require("./db/avatar");
+const error_handling = require("./middleware/auth/middleware");
 
 const app = express();
 
 /* INFO: Enable cors for all origins */
+app.use(error_handling);
 app.use(cors());
 app.use(cors({
-  origin: 'http://localhost:5173',  /* Allow requests from frontend */
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],        /* Allow GET and POST methods */
+  origin: "http://localhost:5173",  /* Allow requests from frontend */
+  methods: ["GET", "POST", "PUT", "DELETE"],        /* Allow GET and POST methods */
   credentials: true                 /* Allow cookies (if necessary) */
 }));
 
 app.use(express.json());  // Parse JSON requests
 
 // Create tables when the server starts
-create_table();
+create_user_table();
 create_expense_table();
 create_income_table();
 create_avatar_table();
@@ -39,17 +43,17 @@ create_avatar_table();
 // Function to generate JWT token
 function generateToken(user) {
   const payload = { id: user.id, email: user.email };  // Include user ID and email in the token
-  const secret = 'your_jwt_secret_key';
-  const options = { expiresIn: '100h' };  // Token expiration time
+  const secret = "your_jwt_secret_key";
+  const options = { expiresIn: "100h" };  // Token expiration time
   return jwt.sign(payload, secret, options);
 }
 
 // POST /register - Register a new user
-app.post('/register', (req, res) => {
+app.post("/register", async (req, res) => {
   const { user_name, email, password } = req.body;
 
   if (!user_name || !email || !password) {
-    return res.status(400).json({ message: 'Full Name, Email and Password are required' });
+    return res.status(400).json({ message: "Full Name, Email and Password are required" });
   }
 
   if (!validator.isEmail(email)) {
@@ -57,76 +61,76 @@ app.post('/register', (req, res) => {
   }
 
   try {
-    const existingUser = get_user_by_email(email);
+    const existingUser = await get_user_by_email(email);
     if (existingUser) {
       return res.status(409).json({
         message: "This email is already registered. Please use a different email or login."
       })
     }
 
-    insert_user(user_name, email, password);
-    res.status(200).json({ message: 'User registered successfully' });
+    await insert_user(user_name, email, password);
+    res.status(200).json({ message: "User registered successfully" });
   } catch (err) {
-    res.status(500).json({ message: 'Error registering user', error: err.message });
+    res.status(500).json({ message: "Error registering user", error: err.message });
   }
 });
 
 // GET /users - Retrieve all users
-app.get('/users', (req, res) => {
+app.get("/users", async (req, res) => {
   try {
-    const users = get_users();
+    const users = await get_users();
     res.status(200).json(users);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching users', error: err.message });
+    res.status(500).json({ message: "Error fetching users", error: err.message });
   }
 });
 
 // POST /login - User login
-app.post('/login', (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ message: 'Email and Password are required' });
+    return res.status(400).json({ message: "Email and Password are required" });
   }
 
   try {
     /* Find user by email from the database */
-    const user = get_user_by_email(email);
+    const user = await get_user_by_email(email);
 
     if (!user) {
-      return res.status(400).json({ message: 'User not found' });
+      return res.status(400).json({ message: "User not found" });
     }
 
     /* INFO: Compare plain-text passwords */
     if (user.password === password) {
       /* INFO: Generate a JWT token */
       const token = generateToken(user);
-      return res.status(200).json({ message: 'Login successful', token });
+      return res.status(200).json({ message: "Login successful", token });
     } else {
-      return res.status(400).json({ message: 'Incorrect password' });
+      return res.status(400).json({ message: "Incorrect password" });
     }
   } catch (err) {
     console.error("Error during login:", err);
-    return res.status(500).json({ message: 'Internal Server Error', error: err.message });
+    return res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 });
 
 /* INFO: Middleware to protect routes with JWT authentication */
 const authenticateJWT = (req, res, next) => {
-  const token = req.header('Authorization')?.split(' ')[1];  // Get token from Authorization header
+  const token = req.header("Authorization")?.split(" ")[1];  // Get token from Authorization header
 
-  if (!token) return res.status(403).json({ message: 'Access denied' });
+  if (!token) return res.status(403).json({ message: "Access denied" });
 
   /* Verify the JWT token */
-  jwt.verify(token, 'your_jwt_secret_key', (err, decoded) => {
-    if (err) return res.status(401).json({ message: 'Invalid token' });
+  jwt.verify(token, "your_jwt_secret_key", (err, decoded) => {
+    if (err) return res.status(401).json({ message: "Invalid token" });
     req.user = decoded;  /* Store decoded user info in request object */
     next();
   });
 };
 
 /* POST /expense - Create an expense (Protected route) */
-app.post('/expense', authenticateJWT, (req, res) => {
+app.post("/expense", authenticateJWT, (req, res) => {
   const { amount, categories, subcategories, date } = req.body;
   const user_id = req.user.id;
 
@@ -136,18 +140,18 @@ app.post('/expense', authenticateJWT, (req, res) => {
 
   try {
     insert_expense(user_id, amount, categories, subcategories, date);
-    res.status(200).json({ message: 'Inserted expense successfully' });
+    res.status(200).json({ message: "Inserted expense successfully" });
   } catch (err) {
     console.error("Error during insertion of expenses", err);
     return res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 });
 
-app.get('/expenses', authenticateJWT, (req, res) => {
+app.get("/expenses", authenticateJWT, async (req, res) => {
   const user_id = req.user.id;  // Get the logged-in user's ID from the token
 
   try {
-    const expenses = get_expenses_by_user(user_id);  // Get expenses for the logged-in user
+    const expenses = await get_expenses_by_user(user_id);  // Get expenses for the logged-in user
     res.status(200).json(expenses);
   } catch (err) {
     console.error("Error fetching expenses", err);
@@ -155,7 +159,7 @@ app.get('/expenses', authenticateJWT, (req, res) => {
   }
 });
 
-app.put('/expenses/:id', authenticateJWT, (req, res) => {
+app.put("/expenses/:id", authenticateJWT, async (req, res) => {
   const user_id = req.user.id;
   const { id } = req.params;
   const { amount, categories, subcategories, date } = req.body;
@@ -166,7 +170,7 @@ app.put('/expenses/:id', authenticateJWT, (req, res) => {
 
   try {
     // Call the edit function to update the expense
-    const result = edit_expenses_by_user(user_id, id, amount, categories, subcategories, date);
+    const result = await edit_expenses_by_user(user_id, id, amount, categories, subcategories, date);
 
     if (result.success) {
       res.status(200).json(result);
@@ -179,15 +183,15 @@ app.put('/expenses/:id', authenticateJWT, (req, res) => {
   }
 });
 
-app.delete('/expenses/:id', authenticateJWT, (req, res) => {
+app.delete("/expenses/:id", authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  const deleteSql = `DELETE FROM expense WHERE id = ?`;
+  const deleteSql = `DELETE FROM expense WHERE id = $1`;
 
   try {
-    const result = db.prepare(deleteSql).run(id);
-    console.log("Delete result:", result);
+    const result = await pool.query(deleteSql, [id]);
+    console.log("Delete result:", result[0]);
 
-    if (result && result.changes > 0) {
+    if (result && result.rowCount > 0) {
       res.status(200).json({ message: `Expense with ID: ${id} deleted successfully.` });
     } else {
       res.status(404).json({ message: `Expense with ID: ${id} not found.` });
@@ -198,7 +202,7 @@ app.delete('/expenses/:id', authenticateJWT, (req, res) => {
   }
 });
 
-app.post('/income', authenticateJWT, (req, res) => {
+app.post("/income", authenticateJWT, (req, res) => {
   const { inc_source, amount, date } = req.body;
   const user_id = req.user.id;
 
@@ -208,26 +212,26 @@ app.post('/income', authenticateJWT, (req, res) => {
 
   try {
     insert_income(user_id, inc_source, amount, date);
-    res.status(200).json({ message: 'Inserted expense successfully' });
+    res.status(200).json({ message: "Inserted expense successfully" });
   } catch (err) {
     console.error("Error during insertion of expenses", err);
     return res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 });
 
-app.get('/income', authenticateJWT, (req, res) => {
+app.get("/income", authenticateJWT, async (req, res) => {
   const user_id = req.user.id;  // Get the logged-in user's ID from the token
 
   try {
-    const expenses = get_income_by_user(user_id);  // Get expenses for the logged-in user
-    res.status(200).json(expenses);
+    const income = await get_income_by_user(user_id);  // Get income for the logged-in user
+    res.status(200).json(income);
   } catch (err) {
-    console.error("Error fetching expenses", err);
-    res.status(500).json({ message: "Error fetching expenses", error: err.message });
+    console.error("Error fetching income", err);
+    res.status(500).json({ message: "Error fetching income", error: err.message });
   }
 });
 
-app.put('/income/:id', authenticateJWT, (req, res) => {
+app.put("/income/:id", authenticateJWT, (req, res) => {
   const user_id = req.user.id;
   const { id } = req.params;
   const { inc_source, amount, date } = req.body;
@@ -251,15 +255,15 @@ app.put('/income/:id', authenticateJWT, (req, res) => {
   }
 });
 
-app.delete('/income/:id', authenticateJWT, (req, res) => {
+app.delete("/income/:id", authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  const deleteSql = `DELETE FROM income WHERE id = ?`;
+  const deleteSql = `DELETE FROM income WHERE id = $1`;
 
   try {
-    const result = db.prepare(deleteSql).run(id);
+    const result = await pool.query(deleteSql, [id]);
     console.log("Delete result:", result);
 
-    if (result && result.changes > 0) {
+    if (result && result.rowCount > 0) {
       res.status(200).json({ message: `Income with ID: ${id} deleted successfully.` });
     } else {
       res.status(404).json({ message: `Income with ID: ${id} not found.` });
@@ -271,62 +275,62 @@ app.delete('/income/:id', authenticateJWT, (req, res) => {
 });
 
 // GET /profile — Get current user's profile
-app.get('/profile', authenticateJWT, (req, res) => {
+app.get("/profile", authenticateJWT, (req, res) => {
   const user = get_user_profile_by_id(req.user.id);
-  if (!user) return res.status(404).json({ message: 'User not found' });
+  if (!user) return res.status(404).json({ message: "User not found" });
   res.json(user);
 });
 
 // PUT /profile — Update current user's profile (name & email only)
-app.put('/profile', authenticateJWT, (req, res) => {
+app.put("/profile", authenticateJWT, async (req, res) => {
   const user_id = req.user.id;
   const { user_name, email } = req.body;
 
   if (!user_name || !email) {
-    return res.status(400).json({ message: 'Name and Email are required' });
+    return res.status(400).json({ message: "Name and Email are required" });
   }
 
-  const result = update_user_by_id(user_id, user_name, email);
-  if (result.changes > 0) {
+  const result = await update_user_by_id(user_id, user_name, email);
+  if (result.rowCount > 0) {
     const updated = get_user_by_id(user_id);
-    res.json({ message: 'Profile updated', user: updated });
+    res.json({ message: "Profile updated", user: updated });
   } else {
-    res.status(404).json({ message: 'Update failed' });
+    res.status(404).json({ message: "Update failed" });
   }
 });
 
 // DELETE /profile — Delete current user's profile and all associated data
-app.delete('/profile', authenticateJWT, async (req, res) => {
+app.delete("/profile", authenticateJWT, async (req, res) => {
   const user_id = req.user.id;
 
   try {
     // Delete expenses
-    const deleteExpensesSql = `DELETE FROM expense WHERE user_id = ?`;
-    const expenseResult = db.prepare(deleteExpensesSql).run(user_id);
-    console.log(`Deleted ${expenseResult.changes} expense records`);
+    const deleteExpensesSql = `DELETE FROM expense WHERE user_id = $1`;
+    const expenseResult = await pool.query(deleteExpensesSql, [user_id]);
+    console.log(`Deleted ${expenseResult.rowCount} expense records`);
 
     // Delete income
-    const deleteIncomeSql = `DELETE FROM income WHERE user_id = ?`;
-    const incomeResult = db.prepare(deleteIncomeSql).run(user_id);
-    console.log(`Deleted ${incomeResult.changes} income records`);
+    const deleteIncomeSql = `DELETE FROM income WHERE user_id = $1`;
+    const incomeResult = await pool.query(deleteIncomeSql, [user_id]);
+    console.log(`Deleted ${incomeResult.rowCount} income records`);
 
     // Delete avatar
     delete_user_avatar(user_id);
 
     // Delete user
-    const deleteUserSql = `DELETE FROM login_users WHERE id = ?`;
-    const userResult = db.prepare(deleteUserSql).run(user_id);
+    const deleteUserSql = `DELETE FROM login_users WHERE id = $1`;
+    const userResult = await pool.query(deleteUserSql, [user_id]);
 
-    console.log(`Deleted ${userResult.changes} user record(s)`);
+    console.log(`Deleted ${userResult.rowCount} user record(s)`);
 
-    if (userResult.changes > 0) {
+    if (userResult.rowCount > 0) {
       res.status(200).json({
-        message: 'User profile and all associated data deleted successfully',
+        message: "User profile and all associated data deleted successfully",
         success: true
       });
     } else {
       res.status(404).json({
-        message: 'User not found',
+        message: "User not found",
         success: false
       });
     }
@@ -335,7 +339,7 @@ app.delete('/profile', authenticateJWT, async (req, res) => {
     console.error("Error deleting user profile:", err.message);
 
     // Check for specific error types
-    if (err.message.includes('database is locked')) {
+    if (err.message.includes("database is locked")) {
       return res.status(503).json({
         message: "Service temporarily unavailable due to database lock",
         success: false
@@ -351,14 +355,14 @@ app.delete('/profile', authenticateJWT, async (req, res) => {
 });
 
 // PUT /profile/password — Update user's password
-app.put('/profile/password', authenticateJWT, (req, res) => {
+app.put("/profile/password", authenticateJWT, (req, res) => {
   const user_id = req.user.id;
   const { currentPassword, newPassword } = req.body;
 
   // Validate input
   if (!currentPassword || !newPassword) {
     return res.status(400).json({
-      message: 'Current password and new password are required',
+      message: "Current password and new password are required",
       success: false
     });
   }
@@ -366,7 +370,7 @@ app.put('/profile/password', authenticateJWT, (req, res) => {
   // Validate new password length
   if (newPassword.length < 6) {
     return res.status(400).json({
-      message: 'New password must be at least 6 characters long',
+      message: "New password must be at least 6 characters long",
       success: false
     });
   }
@@ -402,8 +406,8 @@ const storage = multer.diskStorage({
     cb(null, avatarsDir);
   },
   filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    cb(null, "avatar-" + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
@@ -413,19 +417,19 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: function(req, file, cb) {
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error("Only image files are allowed!"), false);
     }
   }
 });
 
 // Avatar upload route
-app.post('/profile/avatar', authenticateJWT, upload.single('avatar'), (req, res) => {
+app.post("/profile/avatar", authenticateJWT, upload.single("avatar"), (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
     const user_id = req.user.id;
@@ -437,46 +441,46 @@ app.post('/profile/avatar', authenticateJWT, upload.single('avatar'), (req, res)
 
     if (result.success) {
       res.status(200).json({
-        message: 'Avatar uploaded successfully',
+        message: "Avatar uploaded successfully",
         avatarUrl: avatar_url,
         action: result.action
       });
     } else {
       // Delete the uploaded file if database operation failed
       fs.unlinkSync(req.file.path);
-      res.status(500).json({ message: 'Failed to save avatar' });
+      res.status(500).json({ message: "Failed to save avatar" });
     }
   } catch (err) {
     // Delete the uploaded file if error occurred
     if (req.file) {
       fs.unlinkSync(req.file.path);
     }
-    console.error('Error uploading avatar:', err);
-    res.status(500).json({ message: 'Error uploading avatar', error: err.message });
+    console.error("Error uploading avatar:", err);
+    res.status(500).json({ message: "Error uploading avatar", error: err.message });
   }
 });
 
 // Serve avatar files statically
-app.use('/avatars', express.static(path.join(__dirname, 'uploads/avatars')));
+app.use("/avatars", express.static(path.join(__dirname, "uploads/avatars")));
 
 // Delete avatar route
-app.delete('/profile/avatar', authenticateJWT, (req, res) => {
+app.delete("/profile/avatar", authenticateJWT, (req, res) => {
   try {
     const user_id = req.user.id;
     const result = delete_user_avatar(user_id);
 
     if (result.success) {
-      res.status(200).json({ message: 'Avatar deleted successfully' });
+      res.status(200).json({ message: "Avatar deleted successfully" });
     } else {
-      res.status(404).json({ message: result.message || 'Avatar not found' });
+      res.status(404).json({ message: result.message || "Avatar not found" });
     }
   } catch (err) {
-    console.error('Error deleting avatar:', err);
-    res.status(500).json({ message: 'Error deleting avatar', error: err.message });
+    console.error("Error deleting avatar:", err);
+    res.status(500).json({ message: "Error deleting avatar", error: err.message });
   }
 });
 
 // Start the server
 app.listen(5000, () => {
-  console.log('Backend server running on http://localhost:5000');
+  console.log("Backend server running on http://localhost:5000");
 });

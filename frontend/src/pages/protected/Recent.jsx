@@ -210,10 +210,22 @@ export default function Recent() {
     Promise.all([
       fetch("http://localhost:5000/expenses", {
         headers: { Authorization: `Bearer ${token}` },
-      }).then((res) => res.json()),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`[ERROR] Expense ${res.status}: ${text}`);
+        }
+        return res.json();
+      }),
       fetch("http://localhost:5000/income", {
         headers: { Authorization: `Bearer ${token}` },
-      }).then((res) => res.json()),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`[ERROR] Income ${res.status}: ${text}`);
+        }
+        return res.json();
+      }),
     ])
       .then(([expenses, income]) => {
         const formattedExpenses = expenses.map((e) => ({

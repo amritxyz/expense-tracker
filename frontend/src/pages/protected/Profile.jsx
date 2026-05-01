@@ -51,13 +51,11 @@ export default function ProfileSection() {
       const data = await res.json();
       if (res.ok) {
         setUser(data);
-        // Ensure avatar URL is properly set
-        if (data.avatar && !data.avatar.startsWith('http')) {
-          data.avatar = `http://localhost:5000${data.avatar}`;
-        }
-        setAvatarPreview(data.avatar || null);
+        setAvatarPreview(data.avatar ? `http://localhost:5000/profile/avatar/${data.id}` : null);
         formik.setValues({ user_name: data.user_name, email: data.email });
-      } else toast.error("Failed to load profile");
+      } else {
+        toast.error("Failed to load profile");
+      }
     } catch (err) {
       toast.error("Network error");
     }

@@ -30,12 +30,9 @@ export default function VerticalNavbar() {
       const data = await res.json();
       if (res.ok) {
         setUser(data);
-        // Set avatar with full URL if it exists
+        // avatar setting logic in both files
         if (data.avatar) {
-          const fullAvatarUrl = data.avatar.startsWith('http')
-            ? data.avatar
-            : `http://localhost:5000${data.avatar}`;
-          setAvatar(fullAvatarUrl);
+          setAvatar(`http://localhost:5000/profile/avatar/${data.id}`);
         }
       }
     } catch (err) {
@@ -73,7 +70,7 @@ export default function VerticalNavbar() {
             )}
           </div>
           <span className="hidden 2xl:block text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
-            {user ? user.user_name.charAt(0).toUpperCase() + user.user_name.slice(1) : "ExpenseTracker"}
+            {user ? user.user_name[0].toUpperCase() + user.user_name.slice(1) : "ExpenseTracker"}
           </span>
         </Link>
       </div>
