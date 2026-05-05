@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setError(null);
-      const response = await axios.post('http://localhost:5000/login', {
+      const response = await axios.post('http://localhost:5000/auth/login', {
         email,
         password,
       });
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (user_name, email, password) => {
     try {
       setError(null);
-      const response = await axios.post('http://localhost:5000/register', {
+      const response = await axios.post('http://localhost:5000/auth/register', {
         user_name,
         email,
         password,
