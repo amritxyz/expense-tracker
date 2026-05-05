@@ -49,11 +49,15 @@ export default function ProfileSection() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
+      if (data.has_avatar) {
+        const res_avatar = await fetch(`http://localhost:5000/profile/avatar/${data.id}`)
+        setAvatarPreview(`http://localhost:5000/profile/avatar/${data.id}`);
+      };
       if (res.ok) {
         setUser(data);
-        setAvatarPreview(data.avatar ? `http://localhost:5000/profile/avatar/${data.id}` : null);
         formik.setValues({ user_name: data.user_name, email: data.email });
       } else {
+        setAvatarPreview(getInitials(user.user_name));
         toast.error("Failed to load profile");
       }
     } catch (err) {
@@ -122,7 +126,7 @@ export default function ProfileSection() {
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.avatarUrl) {
+        if (data.avatar_url) {
           const avatar_url = `http://localhost:5000/profile/avatar/${user.id}?t=${Date.now()}`;
           setUser({ ...user, avatar: true });
           setAvatarPreview(avatar_url);
@@ -149,12 +153,11 @@ export default function ProfileSection() {
       });
 
       const data = await res.json();
-      console.log("📦 Response data:", data);
 
       if (res.ok) {
         toast.success("Avatar deleted successfully!");
 
-        // Force immediate page reload
+        /* Force immediate page reload */
         window.location.reload();
       } else {
         toast.error(data.message || "Failed to delete avatar");
